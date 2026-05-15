@@ -18,7 +18,7 @@ from deep_translator.exceptions import (
 )
 
 from config import settings
-from utils.languages import detect_language
+from utils.languages import detect_language, to_google_lang
 
 logger = logging.getLogger(__name__)
 
@@ -123,8 +123,9 @@ def _do_translate_sync(
 ) -> TranslationResult:
     """Синхронный вызов Google Translate через deep-translator."""
     try:
-        src = "auto" if source_lang == "auto" else source_lang
-        translator = GoogleTranslator(source=src, target=target_lang)
+        src = "auto" if source_lang == "auto" else to_google_lang(source_lang)
+        tgt = to_google_lang(target_lang)
+        translator = GoogleTranslator(source=src, target=tgt)
         translated = translator.translate(text)
 
         if not translated:

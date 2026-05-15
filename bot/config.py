@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
+from pydantic import Field, computed_field
 from typing import Optional
 
 
@@ -35,7 +35,22 @@ class Settings(BaseSettings):
     # App
     env: str = Field("development", alias="ENV")
     log_level: str = Field("INFO", alias="LOG_LEVEL")
-    admin_tg_ids: list[int] = Field(default_factory=list, alias="ADMIN_TG_IDS")
+    # str — pydantic-settings парсит list[int] из .env только как JSON;
+    # comma-separated значения (123,456) дают JSONDecodeError.
+    admin_tg_ids_raw: str = Field(default="", alias="ADMIN_TG_IDS")
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def admin_tg_ids(self) -> list[int]:
+        raw = self.admin_tg_ids_raw.strip()
+        if not raw:
+            return []
+        if raw.startswith("["):
+            import json
+
+            parsed = json.loads(raw)
+            return [int(x) for x in parsed]
+        return [int(x.strip()) for x in raw.split(",") if x.strip()]
 
 
 settings = Settings()
