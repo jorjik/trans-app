@@ -7,7 +7,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.utils.markdown import hbold, hcode
 
 from services.storage import get_user, set_target_language
-from keyboards.inline_kb import main_menu_kb, change_lang_kb, popular_langs_kb, upgrade_kb
+from keyboards.inline_kb import main_menu_kb, change_lang_kb, popular_langs_kb, upgrade_kb, back_main_kb
 from utils.languages import get_lang_label, resolve_lang, get_lang_name
 from config import settings
 
@@ -115,9 +115,8 @@ async def cmd_quota(message: Message) -> None:
     if user.plan == "free":
         text += "\n💡 <i>Апгрейд до Starter: 500k символов за 250 ⭐/мес</i>"
 
-    kb = None
-    if user.chars_remaining < user.chars_limit * 0.2:
-        kb = upgrade_kb()
+    # Всегда показываем клавиатуру с кнопкой "Назад"
+    kb = upgrade_kb() if user.chars_remaining < user.chars_limit * 0.2 or user.plan == "free" else back_main_kb()
 
     await message.answer(text, reply_markup=kb, parse_mode="HTML")
 
@@ -126,14 +125,50 @@ async def cmd_quota(message: Message) -> None:
 
 @router.callback_query(F.data == "help")
 async def cb_help(callback: CallbackQuery) -> None:
+    text = (
+        "<b>📖 Как пользоваться TransApp</b>\n\n"
+        "<b>Перевод входящих сообщений:</b>\n"
+        "1. Сделай reply на любое сообщение\n"
+        "2. Напиши /tr — я переведу только для тебя\n"
+        "3. Или /tr en — перевести на конкретный язык\n\n"
+        "<b>Перевод своего текста:</b>\n"
+        "/to en Привет, как дела?\n"
+        "→ Hello, how are you?\n\n"
+        "<b>Inline-режим (в любом чате):</b>\n"
+        "Напиши @botusername и текст — выбери язык из списка\n\n"
+        "<b>Настройки:</b>\n"
+        "/lang — изменить язык по умолчанию\n"
+        "/quota — посмотреть баланс символов\n\n"
+        "<b>Коды языков:</b>\n"
+        "en, ru, de, fr, es, it, pl, uk, tr, ar, zh, ja, ko...\n"
+    )
+    await callback.message.edit_text(text, reply_markup=back_main_kb(), parse_mode="HTML")
     await callback.answer()
-    await cmd_help(callback.message)
 
 
 @router.callback_query(F.data == "quota")
 async def cb_quota(callback: CallbackQuery) -> None:
+    user = get_user(callback.from_user.id)
+    pct = (user.chars_used / user.chars_limit * 100) if user.chars_limit > 0 else 0
+    bar_filled = int(pct / 10)
+    bar = "█" * bar_filled + "░" * (10 - bar_filled)
+    plan_emoji = {"free": "🆓", "starter": "⭐", "pro": "💎", "business": "🏢"}
+
+    text = (
+        f"<b>📊 Твой баланс</b>\n\n"
+        f"Тариф: {plan_emoji.get(user.plan, '❓')} {user.plan.capitalize()}\n\n"
+        f"Символов использовано:\n"
+        f"[{bar}] {pct:.1f}%\n"
+        f"{user.chars_used:,} / {user.chars_limit:,}\n\n"
+        f"Осталось: <b>{user.chars_remaining:,}</b> символов\n"
+    )
+    if user.plan == "free":
+        text += "\n💡 <i>Апгрейд до Starter: 500k символов за 250 ⭐/мес</i>"
+
+    kb = upgrade_kb() if user.chars_remaining < user.chars_limit * 0.2 or user.plan == "free" else back_main_kb()
+
+    await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
     await callback.answer()
-    await cmd_quota(callback.message)
 
 
 @router.callback_query(F.data == "change_lang")

@@ -36,23 +36,35 @@ def change_lang_kb(favorite_langs: list[str]) -> InlineKeyboardMarkup:
         name = get_lang_name(code)
         builder.button(text=f"{flag} {name}", callback_data=f"setlang:{code}")
 
-    builder.adjust(2)
-
-    # Кнопка "другой язык"
+    # Добавляем кнопки управления
     builder.button(text="🔍 Другой язык...", callback_data="search_lang")
     builder.button(text="◀️ Назад", callback_data="back_main")
-    builder.adjust(1, last=True)
+
+    # Сетка: по 2 в ряд для языков и по 1 для нижних кнопок
+    # Это универсальный способ в aiogram 3
+    sizes = [2] * (len(favorite_langs) // 2)
+    if len(favorite_langs) % 2:
+        sizes.append(1)
+    sizes.extend([1, 1])
+    builder.adjust(*sizes)
 
     return builder.as_markup()
 
 
 def upgrade_kb() -> InlineKeyboardMarkup:
-    """Кнопки при превышении квоты."""
+    """Кнопки под балансом (апгрейд + назад)."""
     builder = InlineKeyboardBuilder()
     builder.button(text="⭐ Starter — 250 Stars/мес", callback_data="upgrade:starter")
     builder.button(text="👥 Пригласить друга (+10k символов)", callback_data="referral")
-    builder.button(text="❓ Подробнее о планах", callback_data="plans")
+    builder.button(text="◀️ Назад", callback_data="back_main")
     builder.adjust(1)
+    return builder.as_markup()
+
+
+def back_main_kb() -> InlineKeyboardMarkup:
+    """Простая кнопка Назад в главное меню."""
+    builder = InlineKeyboardBuilder()
+    builder.button(text="◀️ Назад", callback_data="back_main")
     return builder.as_markup()
 
 
@@ -82,7 +94,7 @@ def popular_langs_kb() -> InlineKeyboardMarkup:
         flag = get_lang_flag(code)
         name = get_lang_name(code)
         builder.button(text=f"{flag} {name}", callback_data=f"setlang:{code}")
-    builder.adjust(3)
     builder.button(text="◀️ Назад", callback_data="change_lang")
-    builder.adjust(1, last=True)
+    # 16 популярных языков по 3 в ряд (5 рядов по 3 + 1) и кнопка Назад (1)
+    builder.adjust(3, 3, 3, 3, 3, 1, 1)
     return builder.as_markup()
