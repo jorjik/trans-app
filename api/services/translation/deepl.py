@@ -1,49 +1,59 @@
-"""DeepL API provider."""
+"""
+DeepL API провайдер.
+Требует DEEPL_API_KEY. Free tier: 500k символов/мес.
+"""
 
 import logging
 from typing import Optional
 
 import httpx
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from tenacity import retry, stop_after_attempt, wait_exponential
 
-from .base import BaseTranslationProvider, TranslationResult
 from core.config import settings
-from services.language_detect import detect_lang
+from services.translation.base import BaseTranslationProvider, TranslationResult
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
-DEEPL_FREE_URL = "https://api-free.deepl.com/v2/translate"
-DEEPL_PRO_URL = "https://api.deepl.com/v2/translate"
-
-# Языки поддерживаемые DeepL
-DEEPL_SUPPORTED = {
+# Языки поддерживаемые DeepL (source)
+DEEPL_SOURCE_LANGS = {
     "ar", "bg", "cs", "da", "de", "el", "en", "es", "et", "fi",
     "fr", "hu", "id", "it", "ja", "ko", "lt", "lv", "nb", "nl",
     "pl", "pt", "ro", "ru", "sk", "sl", "sv", "tr", "uk", "zh",
 }
 
+# Target languages DeepL (чуть отличаются — en-us/en-gb, pt-br/pt-pt)
+DEEPL_TARGET_LANGS = {
+    "ar", "bg", "cs", "da", "de", "el", "en-gb", "en-us", "en",
+    "es", "et", "fi", "fr", "hu", "id", "it", "ja", "ko", "lt",
+    "lv", "nb", "nl", "pl", "pt-br", "pt-pt", "pt", "ro", "ru",
+    "sk", "sl", "sv", "tr", "uk", "zh",
+}
+
+DEEPL_API_URL = "https://api-free.deepl.com/v2/translate"
+
 
 class DeepLProvider(BaseTranslationProvider):
     name = "deepl"
 
-    def __init__(self):
-        self._api_key = settings.deepl_api_key
-        # Free keys заканчиваются на :fx
-        self._url = (
-            DEEPL_FREE_URL if self._api_key and self._api_key.endswith(":fx")
-            else DEEPL_PRO_URL
-        )
+    def __init__(self, api_key: Optional[str] = None):
+        self.api_key = api_key or settings.deepl_api_key
+        if not self.api_key:
+            raise ValueError("DEEPL_API_KEY not set")
 
-    def is_available(self) -> bool:
-        return bool(self._api_key)
+        # Pro API если ключ не заканчивается на :fx
+        if not self.api_key.endswith(":fx"):
+            self._base_url = "https://api.deepl.com/v2/translate"
+        else:
+            self._base_url = DEEPL_API_URL
 
     def supports_language(self, lang_code: str) -> bool:
-        return lang_code.lower().split("-")[0] in DEEPL_SUPPORTED
+        code = lang_code.lower()
+        return code in DEEPL_TARGET_LANGS or code == "auto"
 
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=1, max=8),
-        retry=retry_if_exception_type(RuntimeError),
+        reraise=True,
     )
     async def translate(
         self,
@@ -51,40 +61,35 @@ class DeepLProvider(BaseTranslationProvider):
         target_lang: str,
         source_lang: str = "auto",
     ) -> TranslationResult:
-        detected = source_lang
-        if source_lang == "auto":
-            detected = await detect_lang(text) or "auto"
-
-        src = None if source_lang == "auto" else source_lang.upper()
-        tgt = target_lang.upper()
+        # DeepL не принимает "auto" — просто не передаём source_lang
+        payload: dict = {
+            "text": [text],
+            "target_lang": target_lang.upper().replace("-", "_"),
+        }
+        if source_lang != "auto":
+            payload["source_lang"] = source_lang.upper()
 
         async with httpx.AsyncClient(timeout=10.0) as client:
-            try:
-                resp = await client.post(
-                    self._url,
-                    headers={"Authorization": f"DeepL-Auth-Key {self._api_key}"},
-                    json={
-                        "text": [text],
-                        "target_lang": tgt,
-                        **({"source_lang": src} if src else {}),
-                    },
-                )
-                resp.raise_for_status()
-                data = resp.json()
-                translated = data["translations"][0]["text"]
-                detected_by_api = data["translations"][0].get("detected_source_language", "").lower()
+            resp = await client.post(
+                self._base_url,
+                headers={"Authorization": f"DeepL-Auth-Key {self.api_key}"},
+                json=payload,
+            )
 
-                return TranslationResult(
-                    original_text=text,
-                    translated_text=translated,
-                    source_lang=detected_by_api or detected,
-                    target_lang=target_lang,
-                    provider=self.name,
-                )
-            except httpx.HTTPStatusError as e:
-                if e.response.status_code == 456:
-                    raise ValueError("DeepL quota exceeded")
-                logger.error("DeepL HTTP error %s: %s", e.response.status_code, e)
-                raise RuntimeError(f"DeepL error: {e.response.status_code}") from e
-            except httpx.RequestError as e:
-                raise RuntimeError(f"DeepL connection error: {e}") from e
+        if resp.status_code == 456:
+            raise RuntimeError("DeepL quota exceeded")
+        if resp.status_code == 429:
+            raise RuntimeError("DeepL rate limit")
+        if resp.status_code != 200:
+            raise RuntimeError(f"DeepL error {resp.status_code}: {resp.text[:200]}")
+
+        data = resp.json()
+        translation = data["translations"][0]
+
+        return TranslationResult(
+            original_text=text,
+            translated_text=translation["text"],
+            source_lang=translation.get("detected_source_language", source_lang).lower(),
+            target_lang=target_lang.lower(),
+            provider=self.name,
+        )

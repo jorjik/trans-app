@@ -1,93 +1,139 @@
-﻿"""CRUD /chats вЂ” СѓРїСЂР°РІР»РµРЅРёРµ Р°РІС‚Рѕ-РїРµСЂРµРІРѕРґР°РјРё."""
+"""CRUD /chats — управление авто-переводами чатов."""
 
-from fastapi import APIRouter, HTTPException, status
+import logging
+
+from fastapi import APIRouter, Depends, Path
 from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from dependencies import CurrentUser, DB
-from models import ChatConfig
+from core.errors import NotFoundError, ForbiddenError, AppError
+from db.session import get_db
+from models import ChatConfig, User
 from schemas import (
     ChatConfigCreate, ChatConfigUpdate,
     ChatConfigResponse, ChatListResponse,
 )
-from services.quota import get_max_chats, get_or_create_quota
+from services.auth import get_current_user
+from services.quota import get_or_create_quota, get_max_chats
 
+log = logging.getLogger(__name__)
 router = APIRouter(prefix="/chats", tags=["chats"])
 
 
 @router.get("", response_model=ChatListResponse)
-async def list_chats(user: CurrentUser, db: DB) -> ChatListResponse:
-    quota = await get_or_create_quota(db, user.id)
+async def list_chats(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ChatListResponse:
+    """Список авто-переводов пользователя."""
+    quota = await get_or_create_quota(db, current_user.id)
     max_chats = get_max_chats(quota.plan)
 
     result = await db.execute(
         select(ChatConfig)
-        .where(ChatConfig.user_id == user.id)
+        .where(ChatConfig.user_id == current_user.id)
         .order_by(ChatConfig.created_at.desc())
     )
-    chats = result.scalars().all()
+    configs = result.scalars().all()
 
     return ChatListResponse(
-        items=[ChatConfigResponse.model_validate(c) for c in chats],
-        total=len(chats),
-        limit_reached=len(chats) >= max_chats,
+        items=[ChatConfigResponse.model_validate(c) for c in configs],
+        total=len(configs),
+        limit_reached=len(configs) >= max_chats,
         max_chats=max_chats,
     )
 
 
-@router.post("", response_model=ChatConfigResponse, status_code=status.HTTP_201_CREATED)
-async def create_chat(body: ChatConfigCreate, user: CurrentUser, db: DB) -> ChatConfigResponse:
-    quota = await get_or_create_quota(db, user.id)
+@router.post("", response_model=ChatConfigResponse, status_code=201)
+async def create_chat(
+    body: ChatConfigCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ChatConfigResponse:
+    """Добавить чат для авто-перевода."""
+    quota = await get_or_create_quota(db, current_user.id)
     max_chats = get_max_chats(quota.plan)
 
-    count_result = await db.execute(
-        select(func.count()).select_from(ChatConfig).where(ChatConfig.user_id == user.id)
+    # Считаем активные конфиги
+    count_res = await db.execute(
+        select(func.count()).where(ChatConfig.user_id == current_user.id)
     )
-    count = count_result.scalar()
-    if count >= max_chats:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Chat limit reached ({max_chats}). Upgrade your plan.",
+    current_count = count_res.scalar_one()
+
+    if current_count >= max_chats:
+        raise AppError(
+            status_code=403,
+            error="chat_limit_reached",
+            message=f"Max {max_chats} auto-translate chats on your plan",
+            max_chats=max_chats,
+            current_plan=quota.plan,
         )
 
-    chat = ChatConfig(
-        user_id=user.id,
-        chat_id=body.chat_id or 0,
+    if not body.chat_username and not body.chat_id:
+        raise AppError(
+            status_code=422,
+            error="validation_error",
+            message="Provide chat_username or chat_id",
+        )
+
+    config = ChatConfig(
+        user_id=current_user.id,
+        chat_id=body.chat_id,
         chat_username=body.chat_username,
         source_lang=body.source_lang,
         target_lang=body.target_lang,
         is_active=True,
     )
-    db.add(chat)
+    db.add(config)
     await db.flush()
-    return ChatConfigResponse.model_validate(chat)
+
+    log.info("Chat config created: user=%s chat=%s", current_user.id, body.chat_username)
+    return ChatConfigResponse.model_validate(config)
 
 
-@router.patch("/{chat_id}", response_model=ChatConfigResponse)
-async def update_chat(chat_id: int, body: ChatConfigUpdate, user: CurrentUser, db: DB) -> ChatConfigResponse:
-    result = await db.execute(
-        select(ChatConfig).where(ChatConfig.id == chat_id, ChatConfig.user_id == user.id)
-    )
-    chat = result.scalar_one_or_none()
-    if not chat:
-        raise HTTPException(status_code=404, detail="Chat not found")
+@router.patch("/{config_id}", response_model=ChatConfigResponse)
+async def update_chat(
+    config_id: int = Path(...),
+    body: ChatConfigUpdate = ...,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ChatConfigResponse:
+    """Обновить настройки авто-перевода."""
+    config = await _get_user_config(db, config_id, current_user.id)
 
     if body.source_lang is not None:
-        chat.source_lang = body.source_lang
+        config.source_lang = body.source_lang
     if body.target_lang is not None:
-        chat.target_lang = body.target_lang
+        config.target_lang = body.target_lang
     if body.is_active is not None:
-        chat.is_active = body.is_active
+        config.is_active = body.is_active
 
-    await db.flush()
-    return ChatConfigResponse.model_validate(chat)
+    db.add(config)
+    return ChatConfigResponse.model_validate(config)
 
 
-@router.delete("/{chat_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_chat(chat_id: int, user: CurrentUser, db: DB) -> None:
+@router.delete("/{config_id}", status_code=204)
+async def delete_chat(
+    config_id: int = Path(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Удалить авто-перевод."""
+    config = await _get_user_config(db, config_id, current_user.id)
+    await db.delete(config)
+
+
+async def _get_user_config(
+    db: AsyncSession,
+    config_id: int,
+    user_id: int,
+) -> ChatConfig:
     result = await db.execute(
-        select(ChatConfig).where(ChatConfig.id == chat_id, ChatConfig.user_id == user.id)
+        select(ChatConfig).where(ChatConfig.id == config_id)
     )
-    chat = result.scalar_one_or_none()
-    if not chat:
-        raise HTTPException(status_code=404, detail="Chat not found")
-    await db.delete(chat)
+    config = result.scalar_one_or_none()
+    if not config:
+        raise NotFoundError("Chat config")
+    if config.user_id != user_id:
+        raise ForbiddenError("Not your config")
+    return config

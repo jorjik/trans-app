@@ -1,76 +1,78 @@
-﻿"""POST /translate вЂ” РѕСЃРЅРѕРІРЅРѕР№ СЌРЅРґРїРѕРёРЅС‚ РїРµСЂРµРІРѕРґР°."""
+"""POST /translate — основной эндпоинт перевода."""
 
 import logging
 import time
-from fastapi import APIRouter
 
-from dependencies import CurrentUser, DB
-from schemas import TranslateRequest, TranslateResponse
-from services.translation.router import translate as do_translate
-from services.quota import check_quota, deduct_chars
-from services.cache import check_rate_limit
-from models import TranslationLog
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from core.errors import RateLimitError, TranslationError
+from db.session import get_db
+from models import TranslationLog, User
+from schemas import TranslateRequest, TranslateResponse
+from services.auth import get_current_user
+from services.cache import check_rate_limit
+from services.quota import check_quota, deduct_chars, get_or_create_quota
+from services.translation import router as tr
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 router = APIRouter(prefix="/translate", tags=["translate"])
 
 
 @router.post("", response_model=TranslateResponse)
-async def translate_text(
+async def do_translate(
     body: TranslateRequest,
-    user: CurrentUser,
-    db: DB,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> TranslateResponse:
-    # Rate limit
-    allowed = await check_rate_limit(user.id, limit=10, window=60)
-    if not allowed:
-        raise RateLimitError(retry_after=5)
+    """Переводит текст. Кэшированные переводы символы НЕ списывают."""
 
-    # Quota check
-    await check_quota(db, user.id, len(body.text))
+    if not await check_rate_limit(current_user.id):
+        raise RateLimitError(retry_after=1)
 
-    # Translate
+    text = body.text.strip()
+    char_count = len(text)
+
+    # Проверяем квоту (выбрасывает QuotaExceededError если нет баланса)
+    await check_quota(db, current_user.id, char_count)
+
     t0 = time.monotonic()
-    status_str = "success"
+    status = "success"
     error_code = None
     result = None
 
     try:
-        result = await do_translate(
-            text=body.text,
+        result = await tr.translate(
+            text=text,
             target_lang=body.target_lang,
             source_lang=body.source_lang,
             engine=body.engine,
         )
     except ValueError as e:
-        status_str = "error"
-        error_code = "invalid_language"
+        status, error_code = "error", "unsupported_language"
         raise TranslationError(str(e))
     except RuntimeError as e:
-        status_str = "error"
-        error_code = "provider_error"
-        raise TranslationError(str(e))
+        status, error_code = "error", "provider_error"
+        log.error("Translation failed: %s", e)
+        raise TranslationError("Translation service temporarily unavailable")
     finally:
         latency_ms = int((time.monotonic() - t0) * 1000)
-        # Р›РѕРіРёСЂСѓРµРј (Р±РµР· С‚РµРєСЃС‚Р°)
-        log = TranslationLog(
-            user_id=user.id,
-            source_lang=body.source_lang if body.source_lang != "auto" else (result.source_lang if result else None),
+        db.add(TranslationLog(
+            user_id=current_user.id,
+            source_lang=result.source_lang if result else body.source_lang,
             target_lang=body.target_lang,
-            char_count=len(body.text),
+            char_count=char_count,
             provider=result.provider if result else None,
             latency_ms=latency_ms,
             cached=result.cached if result else False,
-            status=status_str,
+            status=status,
             error_code=error_code,
-        )
-        db.add(log)
+        ))
 
-    # РЎРїРёСЃС‹РІР°РµРј СЃРёРјРІРѕР»С‹ (С‚РѕР»СЊРєРѕ РµСЃР»Рё РЅРµ РёР· РєСЌС€Р°)
-    quota = user.quota
     if not result.cached:
-        quota = await deduct_chars(db, user.id, result.char_count)
+        quota = await deduct_chars(db, current_user.id, char_count)
+    else:
+        quota = await get_or_create_quota(db, current_user.id)
 
     return TranslateResponse(
         translated_text=result.translated_text,
@@ -78,6 +80,6 @@ async def translate_text(
         target_lang=result.target_lang,
         provider=result.provider,
         cached=result.cached,
-        char_count=result.char_count,
+        char_count=char_count,
         chars_remaining=quota.chars_remaining,
     )

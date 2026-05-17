@@ -1,4 +1,4 @@
-﻿from .router import translate, translate_batch
-from .base import TranslationResult
+"""Translation service package."""
+from services.translation.router import translate
 
-__all__ = ["translate", "translate_batch", "TranslationResult"]
+__all__ = ["translate"]

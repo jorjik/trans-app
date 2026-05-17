@@ -1,4 +1,7 @@
-"""Google Translate (free tier через deep-translator, без API ключа)."""
+"""
+Google Translate (бесплатный, через deep-translator).
+Без API-ключа. Для MVP — основной провайдер.
+"""
 
 import asyncio
 import logging
@@ -8,36 +11,31 @@ from deep_translator.exceptions import (
     LanguageNotSupportedException,
     TranslationNotFound,
 )
+from langdetect import detect, LangDetectException
 
-from .base import BaseTranslationProvider, TranslationResult
-from services.language_detect import detect_lang
+from services.translation.base import BaseTranslationProvider, TranslationResult
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
-# Языки поддерживаемые Google Translate
-GOOGLE_SUPPORTED = {
-    "af", "sq", "am", "ar", "hy", "az", "eu", "be", "bn", "bs",
-    "bg", "ca", "ceb", "zh-cn", "zh-tw", "co", "hr", "cs", "da",
-    "nl", "en", "eo", "et", "fi", "fr", "fy", "gl", "ka", "de",
-    "el", "gu", "ht", "ha", "haw", "he", "iw", "hi", "hmn", "hu",
-    "is", "ig", "id", "ga", "it", "ja", "jv", "kn", "kk", "km",
-    "rw", "ko", "ku", "ky", "lo", "la", "lv", "lt", "lb", "mk",
-    "mg", "ms", "ml", "mt", "mi", "mr", "mn", "my", "ne", "no",
-    "ny", "or", "ps", "fa", "pl", "pt", "pa", "ro", "ru", "sm",
-    "gd", "sr", "st", "sn", "sd", "si", "sk", "sl", "so", "es",
-    "su", "sw", "sv", "tl", "tg", "ta", "tt", "te", "th", "tr",
-    "tk", "uk", "ur", "ug", "uz", "vi", "cy", "xh", "yi", "yo", "zu",
+# Языки, поддерживаемые Google Translate
+SUPPORTED_LANGS = {
+    "af","sq","am","ar","hy","az","eu","be","bn","bs","bg","ca","ceb",
+    "zh-cn","zh-tw","co","hr","cs","da","nl","en","eo","et","fi","fr",
+    "fy","gl","ka","de","el","gu","ht","ha","haw","iw","hi","hmn","hu",
+    "is","ig","id","ga","it","ja","jv","kn","kk","km","rw","ko","ku",
+    "ky","lo","la","lv","lt","lb","mk","mg","ms","ml","mt","mi","mr",
+    "mn","my","ne","no","ny","or","ps","fa","pl","pt","pa","ro","ru",
+    "sm","gd","sr","st","sn","sd","si","sk","sl","so","es","su","sw",
+    "sv","tl","tg","ta","tt","te","th","tr","tk","uk","ur","ug","uz",
+    "vi","cy","xh","yi","yo","zu",
 }
 
 
 class GoogleFreeProvider(BaseTranslationProvider):
     name = "google_free"
 
-    def is_available(self) -> bool:
-        return True  # не требует API ключа
-
     def supports_language(self, lang_code: str) -> bool:
-        return lang_code.lower() in GOOGLE_SUPPORTED
+        return lang_code.lower() in SUPPORTED_LANGS or lang_code == "auto"
 
     async def translate(
         self,
@@ -45,35 +43,42 @@ class GoogleFreeProvider(BaseTranslationProvider):
         target_lang: str,
         source_lang: str = "auto",
     ) -> TranslationResult:
+        # Определяем язык если auto
         detected = source_lang
         if source_lang == "auto":
-            detected = await detect_lang(text) or "auto"
+            detected = await self._detect(text)
 
-        result = await asyncio.get_event_loop().run_in_executor(
+        translated = await asyncio.get_event_loop().run_in_executor(
             None, self._translate_sync, text, target_lang, source_lang
         )
-        result.source_lang = detected
-        return result
 
-    def _translate_sync(
-        self, text: str, target_lang: str, source_lang: str
-    ) -> TranslationResult:
+        return TranslationResult(
+            original_text=text,
+            translated_text=translated,
+            source_lang=detected,
+            target_lang=target_lang,
+            provider=self.name,
+        )
+
+    def _translate_sync(self, text: str, target: str, source: str) -> str:
         try:
-            translator = GoogleTranslator(source=source_lang, target=target_lang)
-            translated = translator.translate(text)
-            if not translated:
-                raise RuntimeError("Empty response from Google Translate")
-            return TranslationResult(
-                original_text=text,
-                translated_text=translated,
-                source_lang=source_lang,
-                target_lang=target_lang,
-                provider=self.name,
-            )
+            translator = GoogleTranslator(source=source, target=target)
+            result = translator.translate(text)
+            if not result:
+                raise RuntimeError("Empty translation result")
+            return result
         except LanguageNotSupportedException as e:
-            raise ValueError(f"Language not supported by Google: {e}") from e
+            raise ValueError(f"Unsupported language: {e}") from e
         except TranslationNotFound as e:
             raise RuntimeError(f"Translation not found: {e}") from e
         except Exception as e:
-            logger.error("Google free translate error: %s", e)
-            raise RuntimeError(str(e)) from e
+            log.error("GoogleFree error: %s", e)
+            raise RuntimeError(f"Translation failed: {e}") from e
+
+    async def _detect(self, text: str) -> str:
+        try:
+            return await asyncio.get_event_loop().run_in_executor(
+                None, detect, text
+            )
+        except LangDetectException:
+            return "auto"

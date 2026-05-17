@@ -1,25 +1,56 @@
-﻿"""POST /webhook/telegram вЂ” РІС…РѕРґСЏС‰РёРµ Р°РїРґРµР№С‚С‹ РѕС‚ Telegram Bot API."""
+"""
+POST /webhook/telegram — приём апдейтов от Telegram Bot API.
+Используется в production (вместо polling).
+В dev-режиме бот работает через polling напрямую.
+"""
 
 import logging
-from fastapi import APIRouter, Header, HTTPException, Request, status
+from typing import Any
+
+from fastapi import APIRouter, Header, Request
+from fastapi.responses import JSONResponse
 
 from core.security import validate_webhook_secret
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 router = APIRouter(prefix="/webhook", tags=["webhook"])
 
 
-@router.post("/telegram", status_code=status.HTTP_200_OK)
+@router.post("/telegram")
 async def telegram_webhook(
     request: Request,
-    x_telegram_bot_api_secret_token: str = Header(None),
-) -> dict:
+    x_telegram_bot_api_secret_token: str | None = Header(None),
+) -> JSONResponse:
+    """
+    Принимает апдейты от Telegram.
+    Секрет передаётся в заголовке X-Telegram-Bot-Api-Secret-Token.
+
+    В текущей архитектуре бот работает как отдельный процесс (polling).
+    Этот эндпоинт нужен для production webhook-режима.
+    """
     if not validate_webhook_secret(x_telegram_bot_api_secret_token):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid secret")
+        log.warning("Webhook: invalid secret token")
+        return JSONResponse(status_code=403, content={"error": "forbidden"})
 
-    body = await request.json()
-    logger.debug("Webhook update: %s", body.get("update_id"))
+    try:
+        update: dict[str, Any] = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"error": "invalid json"})
 
-    # Р’ production: РїРµСЂРµРґР°С‘Рј РІ Bot Service С‡РµСЂРµР· РѕС‡РµСЂРµРґСЊ РёР»Рё РЅР°РїСЂСЏРјСѓСЋ
-    # РЎРµР№С‡Р°СЃ: РїСЂРѕСЃС‚Рѕ Р»РѕРіРёСЂСѓРµРј
-    return {"ok": True}
+    update_id = update.get("update_id", "?")
+    update_type = _detect_update_type(update)
+    log.info("Webhook update received: id=%s type=%s", update_id, update_type)
+
+    # TODO: передать апдейт боту через очередь (Redis pub/sub или Celery)
+    # В MVP бот работает отдельно через polling — этот эндпоинт-заглушка
+
+    return JSONResponse(status_code=200, content={"ok": True})
+
+
+def _detect_update_type(update: dict) -> str:
+    for key in ("message", "callback_query", "inline_query",
+                "channel_post", "edited_message", "pre_checkout_query",
+                "successful_payment"):
+        if key in update:
+            return key
+    return "unknown"

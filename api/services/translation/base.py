@@ -1,4 +1,4 @@
-"""Абстрактный базовый класс провайдера перевода."""
+"""Абстрактный базовый класс для MT-провайдеров."""
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -8,7 +8,7 @@ from dataclasses import dataclass
 class TranslationResult:
     original_text: str
     translated_text: str
-    source_lang: str
+    source_lang: str       # определённый или переданный
     target_lang: str
     provider: str
     cached: bool = False
@@ -20,6 +20,8 @@ class TranslationResult:
 
 
 class BaseTranslationProvider(ABC):
+    """Интерфейс MT-провайдера."""
+
     name: str = "base"
 
     @abstractmethod
@@ -29,15 +31,13 @@ class BaseTranslationProvider(ABC):
         target_lang: str,
         source_lang: str = "auto",
     ) -> TranslationResult:
-        """Переводит текст. Выбрасывает исключение при ошибке."""
+        """Переводит текст. Выбрасывает RuntimeError при ошибке."""
         ...
 
     @abstractmethod
     def supports_language(self, lang_code: str) -> bool:
-        """Проверяет поддержку языка."""
+        """Возвращает True если язык поддерживается."""
         ...
 
-    @abstractmethod
-    def is_available(self) -> bool:
-        """Доступен ли провайдер (есть API ключ и т.д.)."""
-        ...
+    def count_chars(self, text: str) -> int:
+        return len(text)

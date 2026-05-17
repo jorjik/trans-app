@@ -1,58 +1,55 @@
-﻿"""POST /auth/telegram вЂ” РІР°Р»РёРґР°С†РёСЏ Telegram initData Рё РІС‹РґР°С‡Р° JWT."""
+"""POST /auth/telegram — авторизация через Telegram initData."""
 
 import logging
-from fastapi import APIRouter, Depends, HTTPException, status
+
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.security import validate_init_data, InitDataError, create_access_token
-from db.session import get_db
-from schemas import TelegramAuthRequest, AuthResponse, UserBrief
-from services.user_service import get_or_create_user
-from services.quota import get_or_create_quota
+from core.security import validate_init_data, create_access_token, InitDataError
+from core.errors import UnauthorizedError
 from core.config import settings
+from db.session import get_db
+from schemas import TelegramAuthRequest, TokenResponse, UserResponse
+from services.auth import get_or_create_user
+from services.quota import get_or_create_quota
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/telegram", response_model=AuthResponse)
+@router.post("/telegram", response_model=TokenResponse)
 async def auth_telegram(
     body: TelegramAuthRequest,
     db: AsyncSession = Depends(get_db),
-) -> AuthResponse:
+) -> TokenResponse:
     """
-    РђРІС‚РѕСЂРёР·Р°С†РёСЏ С‡РµСЂРµР· Telegram WebApp initData.
-    РЎРѕР·РґР°С‘С‚ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РїСЂРё РїРµСЂРІРѕРј РІС…РѕРґРµ.
+    Валидирует Telegram initData (HMAC) и возвращает JWT.
+    Создаёт пользователя при первом визите.
     """
     try:
         tg_user = validate_init_data(body.init_data)
     except InitDataError as e:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+        raise UnauthorizedError(f"Invalid init_data: {e}")
 
-    telegram_id = tg_user["id"]
-    user, created = await get_or_create_user(
-        db,
-        telegram_id=telegram_id,
-        username=tg_user.get("username"),
-        first_name=tg_user.get("first_name"),
-        language_code=tg_user.get("language_code", "en"),
-    )
-
-    if created:
-        logger.info("New user via Mini App: tg_id=%d", telegram_id)
-
+    user = await get_or_create_user(tg_user, db)
     quota = await get_or_create_quota(db, user.id)
-    token = create_access_token(user.id, telegram_id)
 
-    return AuthResponse(
+    token = create_access_token(user.id, user.telegram_id)
+
+    return TokenResponse(
         access_token=token,
-        token_type="bearer",
         expires_in=settings.jwt_expire_seconds,
-        user=UserBrief(
+        user=UserResponse(
             id=user.id,
-            telegram_id_hash=user.telegram_id_hash,
             target_language=user.target_language,
+            favorite_langs=user.favorite_langs or [],
+            preferred_engine=user.preferred_engine,
             plan=quota.plan,
+            chars_limit=quota.chars_limit,
+            chars_used=quota.chars_used,
             chars_remaining=quota.chars_remaining,
+            reset_at=quota.reset_at,
+            created_at=user.created_at,
         ),
     )
