@@ -235,6 +235,8 @@ Authorization: Bearer <jwt_token>
       "chars_per_month": 50000,
       "price_usd": 0,
       "price_stars": 0,
+      "price_usd_yearly": 0,
+      "price_stars_yearly": 0,
       "max_auto_chats": 2,
       "features": ["basic_translate", "inline_mode"]
     },
@@ -242,8 +244,10 @@ Authorization: Bearer <jwt_token>
       "id": "starter",
       "name": "Starter",
       "chars_per_month": 500000,
-      "price_usd": 4.99,
-      "price_stars": 250,
+      "price_usd": 2.5,
+      "price_stars": 125,
+      "price_usd_yearly": 18,
+      "price_stars_yearly": 900,
       "max_auto_chats": 5,
       "features": ["basic_translate", "inline_mode", "auto_translate", "stats"]
     },
@@ -253,6 +257,8 @@ Authorization: Bearer <jwt_token>
       "chars_per_month": 2000000,
       "price_usd": 14.99,
       "price_stars": 750,
+      "price_usd_yearly": 107.99,
+      "price_stars_yearly": 5400,
       "max_auto_chats": 20,
       "features": ["basic_translate", "inline_mode", "auto_translate", "stats", "priority_support", "gpt_engine"]
     }
