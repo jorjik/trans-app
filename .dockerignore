@@ -8,6 +8,10 @@ docs
 infra
 README.md
 
+# Other services (not needed for API build)
+bot/
+miniapp/
+
 **/__pycache__
 **/*.py[cod]
 **/venv
