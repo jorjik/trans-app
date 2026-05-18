@@ -1,6 +1,6 @@
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile.miniapp"
+root = "miniapp/"
 watchPatterns = ["miniapp/**"]
 
 [deploy]

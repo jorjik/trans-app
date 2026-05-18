@@ -3,7 +3,7 @@
 
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile.bot"
+root = "bot/"
 watchPatterns = ["bot/**"]
 
 [deploy]

@@ -1,6 +1,6 @@
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile.api"
+root = "api/"
 watchPatterns = ["api/**"]
 
 [deploy]
