@@ -1,7 +1,6 @@
 [build]
-builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
-watchPatterns = ["miniapp/**"]
+buildCommand = "npm run build"
+startCommand = "npx serve -s dist -l $PORT"
 
 [deploy]
 healthcheckPath = "/"

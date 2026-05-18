@@ -1,10 +1,6 @@
-# Default config for the bot service (deploy bot first from repo root).
-# For api / miniapp, set Config File in Railway to railway.api.toml or railway.miniapp.toml.
-
 [build]
-builder = "DOCKERFILE"
 root = "bot/"
-watchPatterns = ["bot/**"]
+startCommand = "python main.py"
 
 [deploy]
 restartPolicyType = "ON_FAILURE"
