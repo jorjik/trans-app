@@ -1,6 +1,22 @@
 .env
 docs/MONETIZATION.md
 
+# Node / Vite (miniapp)
+node_modules/
+dist/
+dist-ssr/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+# Local overrides; keep .env.example committed
+.env*.local
+
+# Emitted by `tsc -b` next to vite.config.ts (composite tsconfig.node)
+miniapp/vite.config.js
+miniapp/vite.config.d.ts
+
 # Environments
 venv/
 .venv/
