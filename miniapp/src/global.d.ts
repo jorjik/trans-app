@@ -98,6 +98,10 @@ interface TelegramWebApp {
   sendData(data: string): void;
   openLink(url: string, options?: { try_instant_view?: boolean }): void;
   openTelegramLink(url: string): void;
+  openInvoice(
+    url: string,
+    callback?: (status: 'paid' | 'cancelled' | 'failed' | 'pending') => void,
+  ): void;
   enableClosingConfirmation(): void;
   disableClosingConfirmation(): void;
   setHeaderColor(color: string): void;

@@ -3,6 +3,7 @@
 import logging
 from aiogram import Router, F
 from aiogram.filters import CommandStart, Command
+from aiogram.filters.command import CommandObject
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.markdown import hbold, hcode
 
@@ -16,7 +17,16 @@ router = Router(name="start")
 
 
 @router.message(CommandStart())
-async def cmd_start(message: Message) -> None:
+async def cmd_start(message: Message, command: CommandObject) -> None:
+    if command.args:
+        args = command.args.strip()
+        if args.startswith("pay_"):
+            from services.billing import start_checkout
+
+            plan_id = args.removeprefix("pay_").split("_", 1)[0]
+            await start_checkout(message, plan_id)
+            return
+
     user = get_user(message.from_user.id)
     name = message.from_user.first_name or "друг"
 

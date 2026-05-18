@@ -78,5 +78,20 @@ def add_chars(telegram_id: int, count: int) -> UserSettings:
     return user
 
 
+def upgrade_plan(telegram_id: int, plan: str) -> UserSettings:
+    """Активирует платный тариф после оплаты Stars."""
+    from services.billing import PLAN_LIMITS
+
+    if plan not in PLAN_LIMITS:
+        raise ValueError(f"Unknown plan: {plan}")
+
+    user = get_user(telegram_id)
+    user.plan = plan
+    user.chars_limit = PLAN_LIMITS[plan]
+    user.chars_used = 0
+    save_user(user)
+    return user
+
+
 def get_all_users_count() -> int:
     return len(_store)

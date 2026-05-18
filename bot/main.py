@@ -19,7 +19,7 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from config import settings
-from handlers import start, translate, inline, errors
+from handlers import start, translate, inline, errors, billing
 from middlewares.throttle import ThrottleMiddleware
 
 
@@ -69,6 +69,7 @@ async def main() -> None:
 
     # Роутеры (порядок важен!)
     dp.include_router(errors.router)
+    dp.include_router(billing.router)
     dp.include_router(start.router)
     dp.include_router(translate.router)
     dp.include_router(inline.router)

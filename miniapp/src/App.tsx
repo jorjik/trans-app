@@ -155,10 +155,29 @@ export default function App() {
     mutationFn: (planId: string) => createCheckout(token as string, planId),
     onSuccess: (data) => {
       const tg = window.Telegram?.WebApp;
-      if (data.invoice_url.startsWith('https://t.me/') || data.invoice_url.startsWith('tg://')) {
-        tg?.openTelegramLink(data.invoice_url);
+      const url = data.invoice_url;
+
+      const refreshBilling = () => {
+        void queryClient.invalidateQueries({ queryKey: ['plans', token] });
+        void queryClient.invalidateQueries({ queryKey: ['me', token] });
+      };
+
+      if (tg?.openInvoice) {
+        tg.openInvoice(url, (status) => {
+          if (status === 'paid') {
+            refreshBilling();
+            setError(null);
+          } else if (status === 'failed') {
+            setError('Payment failed. Please try again.');
+          }
+        });
+        return;
+      }
+
+      if (url.startsWith('https://t.me/') || url.startsWith('tg://')) {
+        tg?.openTelegramLink(url);
       } else {
-        tg?.openLink(data.invoice_url);
+        tg?.openLink(url);
       }
     },
     onError: (mutationError) => {

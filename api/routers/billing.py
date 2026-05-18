@@ -1,65 +1,46 @@
-"""Billing — планы и оформление подписки."""
+"""Billing — планы, checkout Stars, внутренний webhook от бота."""
 
+import logging
 from datetime import datetime, timezone, timedelta
+from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.errors import AppError
+from core.config import settings
+from core.errors import AppError, UnauthorizedError
 from db.session import get_db
 from models import User
-from schemas import PlansListResponse, PlanResponse, CheckoutRequest, CheckoutResponse
+from schemas import (
+    PlansListResponse,
+    PlanResponse,
+    CheckoutRequest,
+    CheckoutResponse,
+    StarsInternalPayment,
+)
 from services.auth import get_current_user
+from services.billing_plans import PLAN_CATALOG
 from services.quota import get_or_create_quota, upgrade_plan
+from services.telegram_stars import create_stars_invoice_link
 
+log = logging.getLogger(__name__)
 router = APIRouter(prefix="/billing", tags=["billing"])
 
-# Статические данные планов (в production — из БД таблицы plans)
-PLANS = [
-    PlanResponse(
-        id="free",
-        name="Free",
-        chars_per_month=50_000,
-        price_usd=0.0,
-        price_stars=0,
-        max_auto_chats=2,
-        features=["basic_translate", "inline_mode"],
-    ),
-    PlanResponse(
-        id="starter",
-        name="Starter",
-        chars_per_month=500_000,
-        price_usd=4.99,
-        price_stars=250,
-        max_auto_chats=5,
-        features=["basic_translate", "inline_mode", "auto_translate", "stats"],
-    ),
-    PlanResponse(
-        id="pro",
-        name="Pro",
-        chars_per_month=2_000_000,
-        price_usd=14.99,
-        price_stars=750,
-        max_auto_chats=20,
-        features=[
-            "basic_translate", "inline_mode", "auto_translate",
-            "stats", "priority_support", "deepl_engine",
-        ],
-    ),
-    PlanResponse(
-        id="business",
-        name="Business",
-        chars_per_month=10_000_000,
-        price_usd=49.99,
-        price_stars=2500,
-        max_auto_chats=50,
-        features=[
-            "basic_translate", "inline_mode", "auto_translate", "stats",
-            "priority_support", "deepl_engine", "group_quota", "api_access",
-        ],
-    ),
-]
 
+def _plan_to_response(item) -> PlanResponse:
+    return PlanResponse(
+        id=item.id,
+        name=item.name,
+        chars_per_month=item.chars_per_month,
+        price_usd=item.price_usd,
+        price_stars=item.price_stars,
+        max_auto_chats=item.max_auto_chats,
+        features=list(item.features),
+    )
+
+
+PLANS = [_plan_to_response(p) for p in PLAN_CATALOG.values()]
 PLAN_MAP = {p.id: p for p in PLANS}
 
 
@@ -68,7 +49,6 @@ async def list_plans(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> PlansListResponse:
-    """Список доступных тарифных планов."""
     quota = await get_or_create_quota(db, current_user.id)
     return PlansListResponse(plans=PLANS, current_plan=quota.plan)
 
@@ -77,41 +57,26 @@ async def list_plans(
 async def create_checkout(
     body: CheckoutRequest,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ) -> CheckoutResponse:
-    """
-    Создаёт платёжную сессию.
-    MVP: Telegram Stars — возвращает ссылку на invoice.
-    Stripe/ЮKassa — будет добавлено в v2.
-    """
-    if body.plan_id not in PLAN_MAP:
+    """Создаёт ссылку на оплату Telegram Stars (createInvoiceLink)."""
+    if body.plan_id not in PLAN_CATALOG:
         raise AppError(
             status_code=422,
             error="invalid_plan",
             message=f"Unknown plan: {body.plan_id}",
         )
 
-    plan = PLAN_MAP[body.plan_id]
-
-    if body.payment_method == "telegram_stars":
-        # MVP: формируем ссылку на invoice через бота
-        # В production бот создаёт настоящий invoice через sendInvoice
-        invoice_url = (
-            f"https://t.me/transappbot?start=pay_{body.plan_id}"
-            f"_{current_user.id}"
-        )
-    elif body.payment_method in ("stripe", "yookassa"):
+    if body.payment_method != "telegram_stars":
         raise AppError(
             status_code=501,
             error="not_implemented",
             message=f"{body.payment_method} integration coming in v2",
         )
-    else:
-        raise AppError(
-            status_code=422,
-            error="invalid_payment_method",
-            message=f"Unknown payment method: {body.payment_method}",
-        )
+
+    invoice_url = await create_stars_invoice_link(
+        plan_id=body.plan_id,
+        telegram_id=current_user.telegram_id,
+    )
 
     return CheckoutResponse(
         invoice_url=invoice_url,
@@ -119,15 +84,50 @@ async def create_checkout(
     )
 
 
-@router.post("/webhook/stars", include_in_schema=False)
-async def stars_webhook(
-    current_user: User = Depends(get_current_user),
+@router.post("/internal/stars", include_in_schema=False)
+async def internal_stars_payment(
+    body: StarsInternalPayment,
+    x_billing_secret: Annotated[str | None, Header(alias="X-Billing-Secret")] = None,
     db: AsyncSession = Depends(get_db),
-):
+) -> dict:
     """
-    Вызывается после успешной оплаты через Telegram Stars.
-    В production — вызывается ботом при successful_payment апдейте.
+    Вызывается ботом после successful_payment.
+    Требует BOT_WEBHOOK_SECRET в заголовке X-Billing-Secret.
     """
-    # TODO: верифицировать платёж, получить plan_id из payload
-    # await upgrade_plan(db, current_user.id, plan_id)
-    return {"status": "ok"}
+    if not settings.bot_webhook_secret:
+        raise AppError(
+            status_code=503,
+            error="billing_secret_not_configured",
+            message="BOT_WEBHOOK_SECRET is not set on API",
+        )
+
+    if x_billing_secret != settings.bot_webhook_secret:
+        raise UnauthorizedError("Invalid billing secret")
+
+    if body.plan_id not in PLAN_CATALOG or body.plan_id == "free":
+        raise AppError(
+            status_code=422,
+            error="invalid_plan",
+            message=f"Unknown plan: {body.plan_id}",
+        )
+
+    result = await db.execute(
+        select(User).where(User.telegram_id == body.telegram_id)
+    )
+    user = result.scalar_one_or_none()
+    if not user:
+        raise AppError(
+            status_code=404,
+            error="user_not_found",
+            message="User not found for telegram_id",
+        )
+
+    await upgrade_plan(db, user.id, body.plan_id)
+    log.info(
+        "Stars payment applied user_id=%s plan=%s charge=%s",
+        user.id,
+        body.plan_id,
+        body.telegram_payment_charge_id,
+    )
+
+    return {"status": "ok", "plan": body.plan_id, "user_id": user.id}

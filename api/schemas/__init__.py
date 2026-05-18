@@ -146,3 +146,10 @@ class CheckoutRequest(BaseModel):
 class CheckoutResponse(BaseModel):
     invoice_url: str
     expires_at: datetime
+
+
+class StarsInternalPayment(BaseModel):
+    telegram_id: int
+    plan_id: str
+    telegram_payment_charge_id: str
+    total_amount: int

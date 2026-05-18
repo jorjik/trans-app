@@ -29,8 +29,9 @@ class Settings(BaseSettings):
     free_plan_chars: int = Field(50_000, alias="FREE_PLAN_CHARS")
     referral_bonus_chars: int = Field(10_000, alias="REFERRAL_BONUS_CHARS")
 
-    # Backend API (для будущей интеграции)
+    # Backend API (синхронизация оплаты Stars)
     api_url: Optional[str] = Field(None, alias="BACKEND_API_URL")
+    bot_webhook_secret: Optional[str] = Field(None, alias="BOT_WEBHOOK_SECRET")
 
     # App
     env: str = Field("development", alias="ENV")
