@@ -60,11 +60,10 @@ async def lifespan(app: FastAPI):
     log = structlog.get_logger()
     log.info("Starting TransApp API", env=settings.env)
 
-    # Создаём таблицы (в dev без Alembic)
-    if settings.env == "development":
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        log.info("Database tables created (dev mode)")
+    # Создаём таблицы если их нет (idempotent — не трогает существующие)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    log.info("Database tables created / verified")
 
     # Подключаемся к Redis
     await get_redis()
