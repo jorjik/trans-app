@@ -1,7 +1,7 @@
 [build]
 root = "miniapp/"
 builder = "DOCKERFILE"
-dockerfilePath = "miniapp/Dockerfile"
+dockerfilePath = "Dockerfile"
 
 [deploy]
 healthcheckPath = "/"
