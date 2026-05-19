@@ -4,12 +4,15 @@ import { useState } from 'react';
 
 import { translateText } from '../api/client';
 import { LANGUAGE_OPTIONS } from '../api/langs';
+import { t } from '../i18n';
 import { useStore } from '../store/useStore';
 import type { TranslationEngine } from '../types';
 
 export function QuickTranslate() {
   const queryClient = useQueryClient();
   const token = useStore((state) => state.token);
+  const user = useStore((state) => state.user);
+  const uiLang = user?.ui_language ?? 'en';
 
   const [text, setText] = useState('');
   const [sourceLang, setSourceLang] = useState('auto');
@@ -36,15 +39,15 @@ export function QuickTranslate() {
     <Card withBorder radius="md" p="md">
       <Stack gap="sm">
         <div>
-          <Title order={4}>Quick translate</Title>
+          <Title order={4}>{t('qt.title', uiLang)}</Title>
           <Text size="sm" c="dimmed">
-            Calls the same API as the bot. Cached hits do not spend quota.
+            {t('qt.desc', uiLang)}
           </Text>
         </div>
 
         <Textarea
-          label="Text"
-          placeholder="Type something to translate..."
+          label={t('qt.text_label', uiLang)}
+          placeholder={t('qt.text_placeholder', uiLang)}
           minRows={3}
           value={text}
           onChange={(e) => setText(e.currentTarget.value)}
@@ -52,13 +55,13 @@ export function QuickTranslate() {
 
         <Group grow>
           <Select
-            label="Source"
+            label={t('qt.source', uiLang)}
             data={LANGUAGE_OPTIONS}
             value={sourceLang}
             onChange={(value) => value && setSourceLang(value)}
           />
           <Select
-            label="Target"
+            label={t('qt.target', uiLang)}
             data={LANGUAGE_OPTIONS.filter((item) => item.value !== 'auto')}
             value={targetLang}
             onChange={(value) => value && setTargetLang(value)}
@@ -66,11 +69,11 @@ export function QuickTranslate() {
         </Group>
 
         <Select
-          label="Engine"
+          label={t('qt.engine', uiLang)}
           data={[
-            { value: 'auto', label: 'Auto' },
-            { value: 'google_free', label: 'Google Free' },
-            { value: 'deepl', label: 'DeepL' },
+            { value: 'auto', label: t('settings.engine_auto', uiLang) },
+            { value: 'google_free', label: t('settings.engine_google', uiLang) },
+            { value: 'deepl', label: t('settings.engine_deepl', uiLang) },
           ]}
           value={engine}
           onChange={(value) => value && setEngine(value as TranslationEngine)}
@@ -85,31 +88,31 @@ export function QuickTranslate() {
               mutation.mutate();
             }}
           >
-            Translate
+            {t('qt.translate_btn', uiLang)}
           </Button>
           {mutation.data ? (
             <Text size="sm" c="dimmed">
-              {mutation.data.cached ? 'From cache · ' : null}
-              {mutation.data.chars_remaining.toLocaleString()} chars left
+              {mutation.data.cached ? t('qt.from_cache', uiLang) : null}
+              {t('qt.chars_left', uiLang, { n: mutation.data.chars_remaining.toLocaleString() })}
             </Text>
           ) : null}
         </Group>
 
         {mutation.isError ? (
           <Text size="sm" c="red">
-            {mutation.error instanceof Error ? mutation.error.message : 'Translation failed.'}
+            {mutation.error instanceof Error ? mutation.error.message : t('qt.failed', uiLang)}
           </Text>
         ) : null}
 
         {result ? (
           <Stack gap={4}>
             <Text size="sm" fw={600}>
-              Result
+              {t('qt.result', uiLang)}
             </Text>
             <Text size="sm">{result}</Text>
             {mutation.data ? (
               <Text size="xs" c="dimmed">
-                {mutation.data.provider} · detected {mutation.data.source_lang_detected}
+                {t('qt.provider', uiLang, { provider: mutation.data.provider, lang: mutation.data.source_lang_detected })}
               </Text>
             ) : null}
           </Stack>

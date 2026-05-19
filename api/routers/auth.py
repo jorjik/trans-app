@@ -42,6 +42,7 @@ async def auth_telegram(
         expires_in=settings.jwt_expire_seconds,
         user=UserResponse(
             id=user.id,
+            ui_language=user.ui_language,
             target_language=user.target_language,
             favorite_langs=user.favorite_langs or [],
             preferred_engine=user.preferred_engine,

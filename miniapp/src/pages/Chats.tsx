@@ -3,6 +3,7 @@ import { IconTrash } from '@tabler/icons-react';
 import { useState } from 'react';
 
 import { LANGUAGE_OPTIONS, getLangLabel } from '../api/langs';
+import { t } from '../i18n';
 import type { ChatConfig } from '../types';
 
 interface ChatsProps {
@@ -12,9 +13,10 @@ interface ChatsProps {
   onToggle: (chat: ChatConfig) => Promise<void>;
   onDelete: (chatId: number) => Promise<void>;
   isBusy: boolean;
+  uiLang?: string;
 }
 
-export function Chats({ chats, limitReached, onCreate, onToggle, onDelete, isBusy }: ChatsProps) {
+export function Chats({ chats, limitReached, onCreate, onToggle, onDelete, isBusy, uiLang = 'en' }: ChatsProps) {
   const [chatUsername, setChatUsername] = useState('');
   const [sourceLang, setSourceLang] = useState('auto');
   const [targetLang, setTargetLang] = useState('en');
@@ -22,29 +24,29 @@ export function Chats({ chats, limitReached, onCreate, onToggle, onDelete, isBus
   return (
     <Stack gap="md">
       <div>
-        <Title order={2}>Chats</Title>
+        <Title order={2}>{t('chats.title', uiLang)}</Title>
         <Text c="dimmed" size="sm">
-          Manage auto-translation rules for Telegram chats.
+          {t('chats.desc', uiLang)}
         </Text>
       </div>
 
       <Card withBorder radius="md" p="md">
         <Stack>
           <TextInput
-            label="Chat username"
-            placeholder="devs_world"
+            label={t('chats.username_label', uiLang)}
+            placeholder={t('chats.username_placeholder', uiLang)}
             value={chatUsername}
             onChange={(event) => setChatUsername(event.currentTarget.value)}
           />
           <Group grow>
             <Select
-              label="Source"
+              label={t('chats.source', uiLang)}
               data={LANGUAGE_OPTIONS}
               value={sourceLang}
               onChange={(value) => value && setSourceLang(value)}
             />
             <Select
-              label="Target"
+              label={t('chats.target', uiLang)}
               data={LANGUAGE_OPTIONS.filter((item) => item.value !== 'auto')}
               value={targetLang}
               onChange={(value) => value && setTargetLang(value)}
@@ -52,7 +54,7 @@ export function Chats({ chats, limitReached, onCreate, onToggle, onDelete, isBus
           </Group>
           <Group justify="space-between">
             <Text size="sm" c={limitReached ? 'red' : 'dimmed'}>
-              {limitReached ? 'Chat limit reached for your plan.' : 'You can add a new auto-translation chat.'}
+              {limitReached ? t('chats.limit_reached', uiLang) : t('chats.can_add', uiLang)}
             </Text>
             <Button
               disabled={limitReached || !chatUsername.trim()}
@@ -66,7 +68,7 @@ export function Chats({ chats, limitReached, onCreate, onToggle, onDelete, isBus
                 setChatUsername('');
               }}
             >
-              Add chat
+              {t('chats.add_btn', uiLang)}
             </Button>
           </Group>
         </Stack>
@@ -77,9 +79,9 @@ export function Chats({ chats, limitReached, onCreate, onToggle, onDelete, isBus
           <Table>
             <Table.Thead>
               <Table.Tr>
-                <Table.Th>Chat</Table.Th>
-                <Table.Th>Languages</Table.Th>
-                <Table.Th>Status</Table.Th>
+                <Table.Th>{t('chats.table_chat', uiLang)}</Table.Th>
+                <Table.Th>{t('chats.table_langs', uiLang)}</Table.Th>
+                <Table.Th>{t('chats.table_status', uiLang)}</Table.Th>
                 <Table.Th />
               </Table.Tr>
             </Table.Thead>
@@ -88,7 +90,7 @@ export function Chats({ chats, limitReached, onCreate, onToggle, onDelete, isBus
                 <Table.Tr>
                   <Table.Td colSpan={4}>
                     <Text size="sm" c="dimmed">
-                      No auto-translate chats yet. Add one above (public username without @).
+                      {t('chats.empty', uiLang)}
                     </Text>
                   </Table.Td>
                 </Table.Tr>

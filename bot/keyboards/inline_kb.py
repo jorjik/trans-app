@@ -1,32 +1,33 @@
-"""Inline-клавиатуры и кнопки бота."""
+"""Inline-клавиатуры и кнопки бота — с локализацией."""
 
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from utils.languages import get_lang_flag, get_lang_name, LANG_FLAGS
+from utils.languages import get_lang_flag, get_lang_name
+from utils.i18n import t
 from config import settings
 
 
-def main_menu_kb(mini_app_url: str | None = None) -> InlineKeyboardMarkup:
+def main_menu_kb(mini_app_url: str | None = None, ui_lang: str = "ru") -> InlineKeyboardMarkup:
     """Главное меню в /start."""
     builder = InlineKeyboardBuilder()
 
     if mini_app_url:
         builder.button(
-            text="⚙️ Открыть Mini App",
+            text=t("btn_open_mini_app", ui_lang),
             web_app={"url": mini_app_url},
         )
         builder.adjust(1)
 
-    builder.button(text="📖 Как пользоваться", callback_data="help")
-    builder.button(text="🌍 Изменить язык", callback_data="change_lang")
-    builder.button(text="📊 Мой баланс", callback_data="quota")
+    builder.button(text=t("btn_how_to_use", ui_lang), callback_data="help")
+    builder.button(text=t("btn_change_lang", ui_lang), callback_data="change_lang")
+    builder.button(text=t("btn_my_balance", ui_lang), callback_data="quota")
     builder.adjust(1)
 
     return builder.as_markup()
 
 
-def change_lang_kb(favorite_langs: list[str]) -> InlineKeyboardMarkup:
+def change_lang_kb(favorite_langs: list[str], ui_lang: str = "ru") -> InlineKeyboardMarkup:
     """Клавиатура выбора языка из избранных + популярные."""
     builder = InlineKeyboardBuilder()
 
@@ -37,11 +38,10 @@ def change_lang_kb(favorite_langs: list[str]) -> InlineKeyboardMarkup:
         builder.button(text=f"{flag} {name}", callback_data=f"setlang:{code}")
 
     # Добавляем кнопки управления
-    builder.button(text="🔍 Другой язык...", callback_data="search_lang")
-    builder.button(text="◀️ Назад", callback_data="back_main")
+    builder.button(text=t("btn_other_lang", ui_lang), callback_data="search_lang")
+    builder.button(text=t("btn_back", ui_lang), callback_data="back_main")
 
     # Сетка: по 2 в ряд для языков и по 1 для нижних кнопок
-    # Это универсальный способ в aiogram 3
     sizes = [2] * (len(favorite_langs) // 2)
     if len(favorite_langs) % 2:
         sizes.append(1)
@@ -51,20 +51,20 @@ def change_lang_kb(favorite_langs: list[str]) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def upgrade_kb() -> InlineKeyboardMarkup:
+def upgrade_kb(ui_lang: str = "ru") -> InlineKeyboardMarkup:
     """Кнопки под балансом (апгрейд + назад)."""
     builder = InlineKeyboardBuilder()
-    builder.button(text="⭐ Starter — 250 Stars/мес", callback_data="upgrade:starter")
-    builder.button(text="👥 Пригласить друга (+10k символов)", callback_data="referral")
-    builder.button(text="◀️ Назад", callback_data="back_main")
+    builder.button(text=t("btn_upgrade_starter", ui_lang), callback_data="upgrade:starter")
+    builder.button(text=t("btn_invite_friend", ui_lang), callback_data="referral")
+    builder.button(text=t("btn_back", ui_lang), callback_data="back_main")
     builder.adjust(1)
     return builder.as_markup()
 
 
-def back_main_kb() -> InlineKeyboardMarkup:
+def back_main_kb(ui_lang: str = "ru") -> InlineKeyboardMarkup:
     """Простая кнопка Назад в главное меню."""
     builder = InlineKeyboardBuilder()
-    builder.button(text="◀️ Назад", callback_data="back_main")
+    builder.button(text=t("btn_back", ui_lang), callback_data="back_main")
     return builder.as_markup()
 
 
@@ -72,20 +72,17 @@ def translate_result_kb(
     source_lang: str,
     target_lang: str,
     original_text: str,
+    ui_lang: str = "ru",
 ) -> InlineKeyboardMarkup:
     """Кнопки под результатом перевода."""
     builder = InlineKeyboardBuilder()
-
-    # Перевести на другой язык
-    builder.button(text="🔄 Другой язык", callback_data=f"retranslate:{source_lang}")
-    # Копировать (информационная кнопка)
-    builder.button(text="✅ Готово", callback_data="dismiss")
+    builder.button(text=t("btn_other_target", ui_lang), callback_data=f"retranslate:{source_lang}")
+    builder.button(text=t("btn_done", ui_lang), callback_data="dismiss")
     builder.adjust(2)
-
     return builder.as_markup()
 
 
-def popular_langs_kb() -> InlineKeyboardMarkup:
+def popular_langs_kb(ui_lang: str = "ru") -> InlineKeyboardMarkup:
     """Список популярных языков для быстрого выбора."""
     top = ["en", "ru", "de", "fr", "es", "it", "pt", "pl", "uk", "tr",
            "ar", "zh-cn", "ja", "ko", "nl", "sv"]
@@ -94,7 +91,22 @@ def popular_langs_kb() -> InlineKeyboardMarkup:
         flag = get_lang_flag(code)
         name = get_lang_name(code)
         builder.button(text=f"{flag} {name}", callback_data=f"setlang:{code}")
-    builder.button(text="◀️ Назад", callback_data="change_lang")
-    # 16 популярных языков по 3 в ряд (5 рядов по 3 + 1) и кнопка Назад (1)
+    builder.button(text=t("btn_back", ui_lang), callback_data="change_lang")
     builder.adjust(3, 3, 3, 3, 3, 1, 1)
+    return builder.as_markup()
+
+
+def ui_lang_kb(current_ui_lang: str = "ru") -> InlineKeyboardMarkup:
+    """Клавиатура выбора языка интерфейса (RU / EN)."""
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text="🇷🇺 Русский" if current_ui_lang != "ru" else "✅ 🇷🇺 Русский",
+        callback_data="set_ui_lang:ru",
+    )
+    builder.button(
+        text="🇬🇧 English" if current_ui_lang != "en" else "✅ 🇬🇧 English",
+        callback_data="set_ui_lang:en",
+    )
+    builder.button(text="◀️ " + t("btn_back", current_ui_lang), callback_data="back_main")
+    builder.adjust(1)
     return builder.as_markup()

@@ -1,5 +1,6 @@
 import { Button, Card, Group, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 
+import { t } from '../i18n';
 import type { BillingPlan } from '../types';
 
 interface BillingProps {
@@ -7,15 +8,16 @@ interface BillingProps {
   currentPlan: string;
   onCheckout: (planId: string) => Promise<void>;
   isLoading: boolean;
+  uiLang?: string;
 }
 
-export function Billing({ plans, currentPlan, onCheckout, isLoading }: BillingProps) {
+export function Billing({ plans, currentPlan, onCheckout, isLoading, uiLang = 'en' }: BillingProps) {
   return (
     <Stack gap="md">
       <div>
-        <Title order={2}>Billing</Title>
+        <Title order={2}>{t('billing.title', uiLang)}</Title>
         <Text c="dimmed" size="sm">
-          Upgrade your monthly quota with Telegram Stars.
+          {t('billing.desc', uiLang)}
         </Text>
       </div>
 
@@ -29,11 +31,11 @@ export function Billing({ plans, currentPlan, onCheckout, isLoading }: BillingPr
                 <div>
                   <Title order={3}>{plan.name}</Title>
                   <Text c="dimmed" size="sm">
-                    {plan.chars_per_month.toLocaleString()} chars / month
+                    {t('billing.chars_month', uiLang, { n: plan.chars_per_month.toLocaleString() })}
                   </Text>
                 </div>
 
-                <Text fw={700}>{plan.price_stars} Stars</Text>
+                <Text fw={700}>{t('billing.stars', uiLang, { n: plan.price_stars })}</Text>
 
                 <Stack gap={4}>
                   {plan.features.map((feature) => (
@@ -50,7 +52,7 @@ export function Billing({ plans, currentPlan, onCheckout, isLoading }: BillingPr
                     loading={isLoading}
                     onClick={() => onCheckout(plan.id)}
                   >
-                    {isCurrent ? 'Current plan' : 'Pay with Stars'}
+                    {isCurrent ? t('billing.current_plan', uiLang) : t('billing.pay_stars', uiLang)}
                   </Button>
                 </Group>
               </Stack>

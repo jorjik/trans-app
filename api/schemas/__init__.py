@@ -22,6 +22,7 @@ class TokenResponse(BaseModel):
 
 class UserResponse(BaseModel):
     id: int
+    ui_language: str = "en"
     target_language: str
     favorite_langs: list[str]
     preferred_engine: str
@@ -35,6 +36,7 @@ class UserResponse(BaseModel):
 
 
 class UserUpdateRequest(BaseModel):
+    ui_language: Optional[str] = Field(None, min_length=2, max_length=10)
     target_language: Optional[str] = Field(None, min_length=2, max_length=10)
     favorite_langs: Optional[list[str]] = Field(None, max_length=10)
     preferred_engine: Optional[str] = Field(

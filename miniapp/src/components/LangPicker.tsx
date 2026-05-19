@@ -1,6 +1,7 @@
 import { Modal, Select } from '@mantine/core';
 
 import { LANGUAGE_OPTIONS } from '../api/langs';
+import { t } from '../i18n';
 
 interface LangPickerProps {
   opened: boolean;
@@ -9,6 +10,7 @@ interface LangPickerProps {
   onClose: () => void;
   onChange: (value: string) => void;
   includeAuto?: boolean;
+  uiLang?: string;
 }
 
 export function LangPicker({
@@ -18,6 +20,7 @@ export function LangPicker({
   onClose,
   onChange,
   includeAuto = false,
+  uiLang = 'en',
 }: LangPickerProps) {
   const options = includeAuto
     ? LANGUAGE_OPTIONS
@@ -35,7 +38,7 @@ export function LangPicker({
             onClose();
           }
         }}
-        nothingFoundMessage="No languages found"
+        nothingFoundMessage={t('lang.not_found', uiLang)}
       />
     </Modal>
   );

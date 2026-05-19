@@ -4,6 +4,9 @@ import logging
 from aiogram import Router
 from aiogram.types import ErrorEvent
 
+from services.storage import get_user
+from utils.i18n import t
+
 logger = logging.getLogger(__name__)
 router = Router(name="errors")
 
@@ -19,8 +22,7 @@ async def global_error_handler(event: ErrorEvent) -> None:
     # Пытаемся уведомить пользователя
     try:
         if event.update.message:
-            await event.update.message.answer(
-                "❌ Что-то пошло не так. Попробуй ещё раз."
-            )
+            user = get_user(event.update.message.from_user.id)
+            await event.update.message.answer(t("error_generic", user.ui_language))
     except Exception:
         pass

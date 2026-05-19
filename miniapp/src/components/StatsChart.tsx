@@ -1,17 +1,19 @@
 import { Card, Text } from '@mantine/core';
 import { AreaChart } from '@mantine/charts';
 
+import { t } from '../i18n';
 import type { StatsPoint } from '../types';
 
 interface StatsChartProps {
   data: StatsPoint[];
+  uiLang?: string;
 }
 
-export function StatsChart({ data }: StatsChartProps) {
+export function StatsChart({ data, uiLang = 'en' }: StatsChartProps) {
   return (
     <Card withBorder radius="md" p="md">
       <Text fw={600} mb="sm">
-        Character usage
+        {t('stats.chars', uiLang)}
       </Text>
       <AreaChart
         h={220}

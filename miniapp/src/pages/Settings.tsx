@@ -2,6 +2,7 @@ import { Button, Card, Group, MultiSelect, Select, Stack, Text, Title } from '@m
 import { useEffect, useState } from 'react';
 
 import { LANGUAGE_OPTIONS } from '../api/langs';
+import { t } from '../i18n';
 import type { TranslationEngine, User } from '../types';
 
 interface SettingsProps {
@@ -10,6 +11,7 @@ interface SettingsProps {
     target_language: string;
     favorite_langs: string[];
     preferred_engine: TranslationEngine;
+    ui_language?: string;
   }) => Promise<void>;
   isSaving: boolean;
 }
@@ -18,45 +20,56 @@ export function Settings({ user, onSave, isSaving }: SettingsProps) {
   const [targetLanguage, setTargetLanguage] = useState(user.target_language);
   const [favoriteLangs, setFavoriteLangs] = useState(user.favorite_langs);
   const [engine, setEngine] = useState<TranslationEngine>(user.preferred_engine);
+  const [uiLang, setUiLang] = useState(user.ui_language ?? 'en');
 
   useEffect(() => {
     setTargetLanguage(user.target_language);
     setFavoriteLangs(user.favorite_langs);
     setEngine(user.preferred_engine);
-  }, [user.target_language, user.favorite_langs, user.preferred_engine, user.id]);
+    setUiLang(user.ui_language ?? 'en');
+  }, [user.target_language, user.favorite_langs, user.preferred_engine, user.ui_language, user.id]);
 
   return (
     <Stack gap="md">
       <div>
-        <Title order={2}>Settings</Title>
+        <Title order={2}>{t('settings.title', uiLang)}</Title>
         <Text c="dimmed" size="sm">
-          Configure your default translation preferences.
+          {t('settings.desc', uiLang)}
         </Text>
       </div>
 
       <Card withBorder radius="md" p="md">
         <Stack>
           <Select
-            label="Target language"
+            label={t('settings.target_lang', uiLang)}
             data={LANGUAGE_OPTIONS.filter((item) => item.value !== 'auto')}
             value={targetLanguage}
             onChange={(value) => value && setTargetLanguage(value)}
           />
           <MultiSelect
-            label="Favorite languages"
+            label={t('settings.favorite_langs', uiLang)}
             data={LANGUAGE_OPTIONS.filter((item) => item.value !== 'auto')}
             value={favoriteLangs}
             onChange={setFavoriteLangs}
           />
           <Select
-            label="Translation engine"
+            label={t('settings.engine', uiLang)}
             data={[
-              { value: 'auto', label: 'Auto' },
-              { value: 'google_free', label: 'Google Free' },
-              { value: 'deepl', label: 'DeepL' },
+              { value: 'auto', label: t('settings.engine_auto', uiLang) },
+              { value: 'google_free', label: t('settings.engine_google', uiLang) },
+              { value: 'deepl', label: t('settings.engine_deepl', uiLang) },
             ]}
             value={engine}
             onChange={(value) => value && setEngine(value as TranslationEngine)}
+          />
+          <Select
+            label={t('settings.ui_language', uiLang)}
+            data={[
+              { value: 'ru', label: t('settings.ui_lang_ru', uiLang) },
+              { value: 'en', label: t('settings.ui_lang_en', uiLang) },
+            ]}
+            value={uiLang}
+            onChange={(value) => value && setUiLang(value)}
           />
           <Group justify="flex-end">
             <Button
@@ -66,10 +79,11 @@ export function Settings({ user, onSave, isSaving }: SettingsProps) {
                   target_language: targetLanguage,
                   favorite_langs: favoriteLangs,
                   preferred_engine: engine,
+                  ui_language: uiLang,
                 })
               }
             >
-              Save changes
+              {t('settings.save_btn', uiLang)}
             </Button>
           </Group>
         </Stack>

@@ -11,6 +11,7 @@ export interface User {
   target_language: string;
   favorite_langs: string[];
   preferred_engine: TranslationEngine;
+  ui_language: string;
   plan: string;
   chars_limit: number;
   chars_used: number;

@@ -73,7 +73,7 @@ export function getMe(token: string) {
   return request<User>('/users/me', {}, token);
 }
 
-export function updateMe(token: string, payload: Partial<Pick<User, 'target_language' | 'favorite_langs' | 'preferred_engine'>>) {
+export function updateMe(token: string, payload: Partial<Pick<User, 'target_language' | 'favorite_langs' | 'preferred_engine' | 'ui_language'>>) {
   return request<User>(
     '/users/me',
     {

@@ -20,6 +20,7 @@ class UserSettings:
     chars_used: int = 0
     chars_limit: int = 50_000
     plan: str = "free"
+    ui_language: str = "en"  # "ru" or "en" — язык интерфейса бота/миниаппа
 
     @property
     def chars_remaining(self) -> int:

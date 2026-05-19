@@ -13,6 +13,7 @@ from services.translator import translate
 from services.storage import get_user, deduct_chars
 from keyboards.inline_kb import upgrade_kb, translate_result_kb
 from utils.languages import resolve_lang, get_lang_label, get_lang_name, get_lang_flag
+from utils.i18n import t
 
 logger = logging.getLogger(__name__)
 router = Router(name="translate")
@@ -32,7 +33,6 @@ async def cmd_tr(message: Message) -> None:
     """
     user = get_user(message.from_user.id)
 
-    # Проверка квоты
     if user.is_quota_exceeded:
         await _send_quota_exceeded(message, user)
         return
@@ -45,8 +45,7 @@ async def cmd_tr(message: Message) -> None:
         code = resolve_lang(args[0])
         if not code:
             await message.reply(
-                f"❌ Не знаю язык <code>{args[0]}</code>.\n"
-                f"Примеры: /tr en · /tr de · /tr fr · /tr uk",
+                t("tr_unknown_lang", user.ui_language, code=args[0]),
                 parse_mode="HTML",
             )
             return
@@ -61,15 +60,13 @@ async def cmd_tr(message: Message) -> None:
         source_text = _extract_text(source_msg)
     else:
         await message.reply(
-            "ℹ️ Сделай <b>reply</b> на сообщение которое хочешь перевести, "
-            "затем напиши /tr\n\n"
-            "Или используй: /to en Привет как дела",
+            t("tr_no_reply", user.ui_language),
             parse_mode="HTML",
         )
         return
 
     if not source_text:
-        await message.reply("❌ В том сообщении нет текста для перевода.")
+        await message.reply(t("tr_no_text", user.ui_language))
         return
 
     # Проверяем лимит символов
@@ -83,11 +80,11 @@ async def cmd_tr(message: Message) -> None:
     try:
         result = await translate(source_text, target_lang)
     except ValueError as e:
-        await message.reply(f"❌ Ошибка: {e}")
+        await message.reply(t("tr_error_value", user.ui_language, error=e))
         return
     except RuntimeError as e:
         logger.error("Translation error: %s", e)
-        await message.reply("❌ Не удалось перевести. Попробуй ещё раз.")
+        await message.reply(t("tr_error_runtime", user.ui_language))
         return
 
     # Списываем символы (только если не из кэша)
@@ -102,17 +99,13 @@ async def cmd_tr(message: Message) -> None:
     lang_name = get_lang_name(result.target_lang)
 
     # Краткая информация об источнике (имя отправителя)
-    sender = ""
-    if source_msg and source_msg.from_user:
-        sender = f" · от {source_msg.from_user.first_name}"
+    sender = t("tr_result_sender", user.ui_language, name=source_msg.from_user.first_name) if source_msg and source_msg.from_user else ""
 
-    cache_note = " · 📦 кэш" if result.cached else ""
+    cache_note = t("tr_result_cache", user.ui_language) if result.cached else ""
 
-    header = (
-        f"{flag} <b>{lang_name}</b>"
-        f"{sender}"
-        f"{cache_note}\n"
-        f"━━━━━━━━━━━━━━\n"
+    header = t("tr_result_header", user.ui_language,
+        flag=flag, lang=lang_name,
+        sender=sender, cache_note=cache_note,
     )
 
     translated_text = result.translated_text
@@ -122,18 +115,14 @@ async def cmd_tr(message: Message) -> None:
     for i, chunk in enumerate(chunks):
         footer = ""
         if i == len(chunks) - 1:  # последний чанк — добавляем баланс
-            footer = (
-                f"\n━━━━━━━━━━━━━━\n"
-                f"💬 {result.char_count} симв. · "
-                f"осталось {updated_user.chars_remaining:,}"
-            )
+            footer = t("tr_result_footer", user.ui_language, chars=result.char_count, remaining=updated_user.chars_remaining)
 
         text = header + chunk + footer if i == 0 else chunk + footer
 
         await message.answer(
             text,
             reply_markup=translate_result_kb(
-                result.source_lang, result.target_lang, source_text
+                result.source_lang, result.target_lang, source_text, user.ui_language
             ) if i == len(chunks) - 1 else None,
             parse_mode="HTML",
         )
@@ -160,12 +149,7 @@ async def cmd_to(message: Message) -> None:
 
     if len(parts) < 2:
         await message.reply(
-            "ℹ️ Использование:\n"
-            "<code>/to en Текст для перевода</code>\n\n"
-            "Примеры:\n"
-            "/to en Привет, как дела?\n"
-            "/to de Что нового?\n"
-            "/to fr Спасибо большое",
+            t("to_usage", user.ui_language),
             parse_mode="HTML",
         )
         return
@@ -183,8 +167,7 @@ async def cmd_to(message: Message) -> None:
 
     if not text_to_translate.strip():
         await message.reply(
-            f"ℹ️ Укажи текст для перевода:\n"
-            f"<code>/to {target_lang} Твой текст здесь</code>",
+            t("to_no_text", user.ui_language, lang=target_lang),
             parse_mode="HTML",
         )
         return
@@ -198,10 +181,10 @@ async def cmd_to(message: Message) -> None:
     try:
         result = await translate(text_to_translate, target_lang)
     except ValueError as e:
-        await message.reply(f"❌ {e}")
+        await message.reply(t("tr_error_value", user.ui_language, error=e))
         return
     except RuntimeError:
-        await message.reply("❌ Не удалось перевести. Попробуй ещё раз.")
+        await message.reply(t("tr_error_runtime", user.ui_language))
         return
 
     if not result.cached:
@@ -209,12 +192,10 @@ async def cmd_to(message: Message) -> None:
 
     flag = get_lang_flag(result.target_lang)
     lang_name = get_lang_name(result.target_lang)
-    cache_note = " · 📦" if result.cached else ""
+    cache_note = t("tr_result_cache", user.ui_language) if result.cached else ""
 
-    text = (
-        f"{flag} <b>{lang_name}</b>{cache_note}\n"
-        f"━━━━━━━━━━━━━━\n"
-        f"{result.translated_text}"
+    text = t("to_result", user.ui_language,
+        flag=flag, lang=lang_name, cache_note=cache_note, text=result.translated_text,
     )
 
     await message.reply(text, parse_mode="HTML")
@@ -249,11 +230,8 @@ def _split_message(text: str, max_len: int) -> list[str]:
 async def _send_quota_exceeded(message: Message, user) -> None:
     """Сообщение о превышении квоты."""
     text = (
-        "🚫 <b>Лимит символов исчерпан</b>\n\n"
-        f"Использовано: {user.chars_used:,} / {user.chars_limit:,}\n\n"
-        "Что можно сделать:\n"
-        "• ⭐ Апгрейд до Starter — 500k символов за 250 Stars/мес\n"
-        "• 👥 Пригласи друга — получи +10,000 символов бесплатно\n"
-        "• 📅 Подожди сброса лимита (1-е число месяца)"
+        f"{t('quota_exceeded_title', user.ui_language)}\n\n"
+        f"{t('quota_exceeded_used', user.ui_language, used=user.chars_used, limit=user.chars_limit)}\n\n"
+        f"{t('quota_exceeded_options', user.ui_language)}"
     )
-    await message.reply(text, reply_markup=upgrade_kb(), parse_mode="HTML")
+    await message.reply(text, reply_markup=upgrade_kb(user.ui_language), parse_mode="HTML")

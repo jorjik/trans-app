@@ -43,12 +43,14 @@ async def get_or_create_user(
         return user, False
 
     # РЎРѕР·РґР°С‘Рј РЅРѕРІРѕРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
+    ui_lang = language_code if language_code in ("en", "ru") else "en"
     user = User(
         telegram_id=telegram_id,
         telegram_id_hash=tg_hash,
         username=username,
         first_name=first_name,
         language_code=language_code,
+        ui_language=ui_lang,
         target_language=language_code if language_code in ("ru", "en", "de", "fr", "es", "uk") else "en",
         favorite_langs=["en", "ru", "de"],
         preferred_engine="auto",

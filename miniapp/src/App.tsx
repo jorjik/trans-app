@@ -1,6 +1,7 @@
 import {
   AppShell,
   Avatar,
+  Burger,
   Center,
   Group,
   Loader,
@@ -31,6 +32,7 @@ import {
   updateChat,
   updateMe,
 } from './api/client';
+import { t } from './i18n';
 import { Billing } from './pages/Billing';
 import { Chats } from './pages/Chats';
 import { Dashboard } from './pages/Dashboard';
@@ -49,6 +51,9 @@ export default function App() {
   const setUser = useStore((state) => state.setUser);
   const setReady = useStore((state) => state.setReady);
   const setActiveTab = useStore((state) => state.setActiveTab);
+  const [navbarOpened, setNavbarOpened] = useState(false);
+
+  const uiLang = user?.ui_language ?? 'en';
 
   useEffect(() => {
     const bootstrap = async () => {
@@ -67,14 +72,14 @@ export default function App() {
         setToken(auth.access_token);
         setUser(auth.user);
       } catch (bootstrapError) {
-        setError(bootstrapError instanceof Error ? bootstrapError.message : 'Failed to initialize app.');
+        setError(bootstrapError instanceof Error ? bootstrapError.message : t('app.init_error', uiLang));
       } finally {
         setReady(true);
       }
     };
 
     void bootstrap();
-  }, [setReady, setToken, setUser]);
+  }, [setReady, setToken, setUser, uiLang]);
 
   const meQuery = useQuery({
     queryKey: ['me', token],
@@ -113,7 +118,7 @@ export default function App() {
       void queryClient.invalidateQueries({ queryKey: ['me', token] });
     },
     onError: (mutationError) => {
-      setError(mutationError instanceof Error ? mutationError.message : 'Failed to save settings.');
+      setError(mutationError instanceof Error ? mutationError.message : t('app.save_error', uiLang));
     },
   });
 
@@ -124,7 +129,7 @@ export default function App() {
       void queryClient.invalidateQueries({ queryKey: ['chats', token] });
     },
     onError: (mutationError) => {
-      setError(mutationError instanceof Error ? mutationError.message : 'Failed to create chat.');
+      setError(mutationError instanceof Error ? mutationError.message : t('app.chat_create_error', uiLang));
     },
   });
 
@@ -137,7 +142,7 @@ export default function App() {
       void queryClient.invalidateQueries({ queryKey: ['chats', token] });
     },
     onError: (mutationError) => {
-      setError(mutationError instanceof Error ? mutationError.message : 'Failed to update chat.');
+      setError(mutationError instanceof Error ? mutationError.message : t('app.chat_update_error', uiLang));
     },
   });
 
@@ -147,7 +152,7 @@ export default function App() {
       void queryClient.invalidateQueries({ queryKey: ['chats', token] });
     },
     onError: (mutationError) => {
-      setError(mutationError instanceof Error ? mutationError.message : 'Failed to delete chat.');
+      setError(mutationError instanceof Error ? mutationError.message : t('app.chat_delete_error', uiLang));
     },
   });
 
@@ -168,7 +173,7 @@ export default function App() {
             refreshBilling();
             setError(null);
           } else if (status === 'failed') {
-            setError('Payment failed. Please try again.');
+            setError(t('app.payment_failed', uiLang));
           }
         });
         return;
@@ -181,18 +186,18 @@ export default function App() {
       }
     },
     onError: (mutationError) => {
-      setError(mutationError instanceof Error ? mutationError.message : 'Failed to create checkout.');
+      setError(mutationError instanceof Error ? mutationError.message : t('app.checkout_error', uiLang));
     },
   });
 
   const navItems = useMemo(
     () => [
-      { key: 'dashboard', label: 'Dashboard', icon: IconDashboard },
-      { key: 'chats', label: 'Chats', icon: IconMessages },
-      { key: 'billing', label: 'Billing', icon: IconCreditCard },
-      { key: 'settings', label: 'Settings', icon: IconSettings },
+      { key: 'dashboard', label: t('nav.dashboard', uiLang), icon: IconDashboard },
+      { key: 'chats', label: t('nav.chats', uiLang), icon: IconMessages },
+      { key: 'billing', label: t('nav.billing', uiLang), icon: IconCreditCard },
+      { key: 'settings', label: t('nav.settings', uiLang), icon: IconSettings },
     ] as const,
-    [],
+    [uiLang],
   );
 
   if (!isReady) {
@@ -201,7 +206,7 @@ export default function App() {
         <Stack align="center" gap="sm">
           <Loader />
           <Text size="sm" c="gray.4">
-            Initializing TransApp...
+            {t('app.loading', uiLang)}
           </Text>
         </Stack>
       </Center>
@@ -212,9 +217,9 @@ export default function App() {
     return (
       <Center mih="100vh" px="md">
         <Stack align="center" gap="sm" maw={420}>
-          <Title order={3}>TransApp Mini App</Title>
+          <Title order={3}>{t('app.error.title', uiLang)}</Title>
           <Text ta="center" c="dimmed">
-            {error ?? 'Authorization failed.'}
+            {error ?? t('app.auth_failed', uiLang)}
           </Text>
         </Stack>
       </Center>
@@ -240,6 +245,7 @@ export default function App() {
               toggleChatMutation.isPending ||
               deleteChatMutation.isPending
             }
+            uiLang={user.ui_language}
           />
         );
       case 'billing':
@@ -251,6 +257,7 @@ export default function App() {
               await checkoutMutation.mutateAsync(planId);
             }}
             isLoading={checkoutMutation.isPending}
+            uiLang={user.ui_language}
           />
         );
       case 'settings':
@@ -269,8 +276,31 @@ export default function App() {
     }
   })();
 
+  const handleNavClick = (key: 'dashboard' | 'chats' | 'billing' | 'settings') => {
+    setActiveTab(key);
+    setNavbarOpened(false);
+  };
+
   return (
-    <AppShell padding="md" navbar={{ width: 280, breakpoint: 'sm' }}>
+    <AppShell
+      padding="md"
+      header={{ height: 56 }}
+      navbar={{
+        width: 280,
+        breakpoint: 'sm',
+        collapsed: { mobile: !navbarOpened },
+      }}
+    >
+      <AppShell.Header>
+        <Group h="100%" px="md">
+          <Burger
+            opened={navbarOpened}
+            onClick={() => setNavbarOpened((o) => !o)}
+            size="sm"
+          />
+          <Text fw={600}>TransApp</Text>
+        </Group>
+      </AppShell.Header>
       <AppShell.Navbar p="sm">
         <Stack justify="space-between" h="100%">
           <Stack gap="sm">
@@ -290,13 +320,16 @@ export default function App() {
                 active={activeTab === item.key}
                 label={item.label}
                 leftSection={<item.icon size={18} />}
-                onClick={() => setActiveTab(item.key)}
+                onClick={() => handleNavClick(item.key)}
               />
             ))}
           </Stack>
 
           <Text size="xs" c="dimmed">
-            Plan: {user.plan} · Remaining: {user.chars_remaining.toLocaleString()}
+            {t('nav.plan_remaining', user.ui_language, {
+              plan: user.plan,
+              chars: user.chars_remaining.toLocaleString(),
+            })}
           </Text>
         </Stack>
       </AppShell.Navbar>

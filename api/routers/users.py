@@ -15,6 +15,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 def _build_user_response(user: User, quota) -> UserResponse:
     return UserResponse(
         id=user.id,
+        ui_language=user.ui_language,
         target_language=user.target_language,
         favorite_langs=user.favorite_langs or [],
         preferred_engine=user.preferred_engine,
@@ -44,6 +45,9 @@ async def update_me(
     db: AsyncSession = Depends(get_db),
 ) -> UserResponse:
     """Обновляет настройки: язык, любимые языки, движок перевода."""
+    if body.ui_language is not None:
+        current_user.ui_language = body.ui_language
+
     if body.target_language is not None:
         current_user.target_language = body.target_language
         # Добавляем в начало избранных если ещё нет

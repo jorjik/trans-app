@@ -29,6 +29,7 @@ class User(Base):
     username: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     first_name: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     language_code: Mapped[str] = mapped_column(String(10), default="en")
+    ui_language: Mapped[str] = mapped_column(String(10), default="en")
     target_language: Mapped[str] = mapped_column(String(10), default="en")
     preferred_engine: Mapped[str] = mapped_column(String(20), default="auto")
     favorite_langs: Mapped[list] = mapped_column(JSONB, default=list)
