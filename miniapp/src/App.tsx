@@ -200,7 +200,7 @@ export default function App() {
       <Center mih="100vh">
         <Stack align="center" gap="sm">
           <Loader />
-          <Text size="sm" c="dimmed">
+          <Text size="sm" c="gray.4">
             Initializing TransApp...
           </Text>
         </Stack>
