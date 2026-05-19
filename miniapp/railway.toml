@@ -1,6 +1,5 @@
 [build]
-buildCommand = "npm run build"
-startCommand = "npx serve -s dist -l $PORT"
+builder = "DOCKERFILE"
 
 [deploy]
 healthcheckPath = "/"
