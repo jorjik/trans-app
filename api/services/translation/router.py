@@ -117,12 +117,12 @@ async def translate(
             latency_ms = int((time.monotonic() - t0) * 1000)
 
             log.info(
-                "Translated",
-                provider=provider.name,
-                chars=result.char_count,
-                latency_ms=latency_ms,
-                src=result.source_lang,
-                tgt=target_lang,
+                "Translated — provider=%s chars=%d latency=%dms src=%s tgt=%s",
+                provider.name,
+                result.char_count,
+                latency_ms,
+                result.source_lang,
+                target_lang,
             )
 
             # Сохраняем в кэш
