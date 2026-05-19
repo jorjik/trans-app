@@ -1,4 +1,4 @@
-import { Button, Card, Group, Select, Stack, Text, Textarea, Title } from '@mantine/core';
+import { Button, Card, CopyButton, Group, Select, Stack, Text, Textarea, Title } from '@mantine/core';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
@@ -16,7 +16,8 @@ export function QuickTranslate() {
 
   const [text, setText] = useState('');
   const [sourceLang, setSourceLang] = useState('auto');
-  const [targetLang, setTargetLang] = useState('en');
+  const defaultTarget = user?.target_language ?? (uiLang === 'ru' ? 'ru' : 'en');
+  const [targetLang, setTargetLang] = useState(defaultTarget);
   const [engine, setEngine] = useState<TranslationEngine>('auto');
   const [result, setResult] = useState<string | null>(null);
 
@@ -105,10 +106,24 @@ export function QuickTranslate() {
         ) : null}
 
         {result ? (
-          <Stack gap={4}>
-            <Text size="sm" fw={600}>
-              {t('qt.result', uiLang)}
-            </Text>
+          <Stack gap={8}>
+            <Group justify="space-between" align="center">
+              <Text size="sm" fw={600}>
+                {t('qt.result', uiLang)}
+              </Text>
+              <CopyButton value={result}>
+                {({ copied, copy }) => (
+                  <Button
+                    size="compact-sm"
+                    variant="light"
+                    color={copied ? 'teal' : 'gray'}
+                    onClick={copy}
+                  >
+                    {copied ? t('qt.copied', uiLang) : t('qt.copy', uiLang)}
+                  </Button>
+                )}
+              </CopyButton>
+            </Group>
             <Text size="sm">{result}</Text>
             {mutation.data ? (
               <Text size="xs" c="dimmed">
