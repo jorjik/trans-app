@@ -82,7 +82,7 @@ def translate_result_kb(
     return builder.as_markup()
 
 
-def popular_langs_kb(ui_lang: str = "ru") -> InlineKeyboardMarkup:
+def popular_langs_kb(ui_lang: str = "ru", callback_prefix: str = "setlang") -> InlineKeyboardMarkup:
     """Список популярных языков для быстрого выбора."""
     top = ["en", "ru", "de", "fr", "es", "it", "pt", "pl", "uk", "tr",
            "ar", "zh-cn", "ja", "ko", "nl", "sv"]
@@ -90,7 +90,7 @@ def popular_langs_kb(ui_lang: str = "ru") -> InlineKeyboardMarkup:
     for code in top:
         flag = get_lang_flag(code)
         name = get_lang_name(code)
-        builder.button(text=f"{flag} {name}", callback_data=f"setlang:{code}")
+        builder.button(text=f"{flag} {name}", callback_data=f"{callback_prefix}:{code}")
     builder.button(text=t("btn_back", ui_lang), callback_data="change_lang")
     builder.adjust(3, 3, 3, 3, 3, 1, 1)
     return builder.as_markup()

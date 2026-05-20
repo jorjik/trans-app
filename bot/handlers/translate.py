@@ -4,14 +4,15 @@
   /to [lang] [text] — перевод своего текста
 """
 
+import html
 import logging
-from aiogram import Router
+from aiogram import F, Router
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, Message
 
 from services.translator import translate
 from services.storage import get_user, deduct_chars
-from keyboards.inline_kb import upgrade_kb, translate_result_kb
+from keyboards.inline_kb import upgrade_kb, translate_result_kb, popular_langs_kb
 from utils.languages import resolve_lang, get_lang_label, get_lang_name, get_lang_flag
 from utils.i18n import t
 
@@ -19,6 +20,10 @@ logger = logging.getLogger(__name__)
 router = Router(name="translate")
 
 MAX_RESULT_LENGTH = 4096  # Telegram message limit
+
+
+# In-memory хранилище последнего переведённого текста (для retranslate)
+_last_source_text: dict[int, str] = {}
 
 
 # ── /tr ────────────────────────────────────────────────────
@@ -98,8 +103,9 @@ async def cmd_tr(message: Message) -> None:
     flag = get_lang_flag(result.target_lang)
     lang_name = get_lang_name(result.target_lang)
 
-    # Краткая информация об источнике (имя отправителя)
-    sender = t("tr_result_sender", user.ui_language, name=source_msg.from_user.first_name) if source_msg and source_msg.from_user else ""
+    # Краткая информация об источнике (имя отправителя) — экранируем HTML
+    sender_name = html.escape(source_msg.from_user.first_name) if source_msg and source_msg.from_user else ""
+    sender = t("tr_result_sender", user.ui_language, name=sender_name) if sender_name else ""
 
     cache_note = t("tr_result_cache", user.ui_language) if result.cached else ""
 
@@ -111,6 +117,9 @@ async def cmd_tr(message: Message) -> None:
     translated_text = result.translated_text
     # Разбиваем на части если длинный
     chunks = _split_message(translated_text, MAX_RESULT_LENGTH - len(header))
+
+    # Сохраняем текст для retranslate
+    _last_source_text[message.from_user.id] = source_text
 
     for i, chunk in enumerate(chunks):
         footer = ""
@@ -157,13 +166,14 @@ async def cmd_to(message: Message) -> None:
     # Определяем язык
     code = resolve_lang(parts[1])
     if not code:
-        # Может быть пользователь не указал язык, а сразу написал текст
-        # Тогда используем язык по умолчанию
-        target_lang = user.target_language
-        text_to_translate = message.text.split(None, 1)[1] if len(parts) > 1 else ""
-    else:
-        target_lang = code
-        text_to_translate = parts[2] if len(parts) > 2 else ""
+        await message.reply(
+            t("to_usage", user.ui_language),
+            parse_mode="HTML",
+        )
+        return
+
+    target_lang = code
+    text_to_translate = parts[2] if len(parts) > 2 else ""
 
     if not text_to_translate.strip():
         await message.reply(
@@ -199,6 +209,78 @@ async def cmd_to(message: Message) -> None:
     )
 
     await message.reply(text, parse_mode="HTML")
+
+
+# ── Retranslate (callback from /tr result) ──────────────────
+
+@router.callback_query(F.data.startswith("retranslate:"))
+async def cb_retranslate(callback: CallbackQuery) -> None:
+    """Показывает список языков для повторного перевода."""
+    user = get_user(callback.from_user.id)
+    await callback.message.edit_text(
+        t("lang_popular", user.ui_language),
+        reply_markup=popular_langs_kb(user.ui_language, callback_prefix="retranslate_to"),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("retranslate_to:"))
+async def cb_retranslate_to(callback: CallbackQuery) -> None:
+    """Переводит сохранённый текст на выбранный язык."""
+    user = get_user(callback.from_user.id)
+    target_lang = callback.data.split(":", 1)[1]
+
+    original_text = _last_source_text.get(callback.from_user.id)
+    if not original_text:
+        await callback.answer(t("error_generic", user.ui_language), show_alert=True)
+        return
+
+    if user.is_quota_exceeded or len(original_text) > user.chars_remaining:
+        await callback.message.edit_text(
+            f"{t('quota_exceeded_title', user.ui_language)}\n\n"
+            f"{t('quota_exceeded_used', user.ui_language, used=user.chars_used, limit=user.chars_limit)}\n\n"
+            f"{t('quota_exceeded_options', user.ui_language)}",
+            reply_markup=upgrade_kb(user.ui_language),
+            parse_mode="HTML",
+        )
+        await callback.answer()
+        return
+
+    await callback.bot.send_chat_action(callback.message.chat.id, "typing")
+    await callback.answer()
+
+    try:
+        result = await translate(original_text, target_lang)
+    except ValueError as e:
+        await callback.message.edit_text(t("tr_error_value", user.ui_language, error=e))
+        return
+    except RuntimeError:
+        await callback.message.edit_text(t("tr_error_runtime", user.ui_language))
+        return
+
+    if not result.cached:
+        deduct_chars(callback.from_user.id, result.char_count)
+        updated_user = get_user(callback.from_user.id)
+    else:
+        updated_user = user
+
+    flag = get_lang_flag(result.target_lang)
+    lang_name = get_lang_name(result.target_lang)
+
+    header = t("tr_result_header", user.ui_language,
+        flag=flag, lang=lang_name, sender="", cache_note="",
+    )
+    footer = t("tr_result_footer", user.ui_language, chars=result.char_count, remaining=updated_user.chars_remaining)
+
+    text = header + result.translated_text + footer
+
+    await callback.message.edit_text(
+        text,
+        reply_markup=translate_result_kb(
+            result.source_lang, result.target_lang, original_text, user.ui_language
+        ),
+        parse_mode="HTML",
+    )
 
 
 # ── Helpers ─────────────────────────────────────────────────
