@@ -1,98 +1,49 @@
 """
 Хранилище пользовательских настроек.
-MVP: in-memory dict + опциональный Redis.
+Persistent: использует Backend API через api_client.
+In-memory: с TTL-кэшем для быстрого доступа.
 """
 
-import json
+from __future__ import annotations
+
 import logging
-from dataclasses import dataclass, field, asdict
 from typing import Optional
+
+from services.api_client import (
+    UserData,
+    get_user as _api_get_user,
+    deduct_chars as _api_deduct_chars,
+    update_settings as _api_update_settings,
+    upgrade_plan as _api_upgrade_plan,
+)
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class UserSettings:
-    telegram_id: int
-    target_language: str = "en"
-    source_language: str = "auto"
-    favorite_langs: list[str] = field(default_factory=lambda: ["en", "de", "fr"])
-    chars_used: int = 0
-    chars_limit: int = 50_000
-    plan: str = "free"
-    ui_language: str = ""  # "ru" or "en" or "uk" — язык интерфейса; пустая строка = первый вход
-
-    @property
-    def chars_remaining(self) -> int:
-        return max(0, self.chars_limit - self.chars_used)
-
-    @property
-    def is_quota_exceeded(self) -> bool:
-        return self.chars_used >= self.chars_limit
-
-    def to_dict(self) -> dict:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, data: dict) -> "UserSettings":
-        return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
+# ── Public API (совместимость с существующими обработчиками) ──────────────────
 
 
-# In-memory хранилище
-_store: dict[int, UserSettings] = {}
+async def get_user(telegram_id: int) -> UserData:
+    """Возвращает данные пользователя из API (с in-memory кэшем)."""
+    return await _api_get_user(telegram_id)
 
 
-def get_user(telegram_id: int) -> UserSettings:
-    """Возвращает настройки пользователя. Создаёт если не существует."""
-    if telegram_id not in _store:
-        _store[telegram_id] = UserSettings(telegram_id=telegram_id)
-    return _store[telegram_id]
+async def deduct_chars(telegram_id: int, count: int) -> Optional[UserData]:
+    """Списывает символы через API."""
+    return await _api_deduct_chars(telegram_id, count)
 
 
-def save_user(settings: UserSettings) -> None:
-    _store[settings.telegram_id] = settings
+async def set_target_language(telegram_id: int, lang: str) -> UserData:
+    """Устанавливает язык перевода."""
+    await _api_update_settings(telegram_id, target_language=lang)
+    return await _api_get_user(telegram_id)
 
 
-def set_target_language(telegram_id: int, lang: str) -> UserSettings:
-    user = get_user(telegram_id)
-    user.target_language = lang
-    # Добавляем в избранное если ещё нет
-    if lang not in user.favorite_langs:
-        user.favorite_langs.insert(0, lang)
-        user.favorite_langs = user.favorite_langs[:5]  # max 5
-    save_user(user)
-    return user
+async def upgrade_plan(telegram_id: int, plan: str) -> bool:
+    """Активирует платный тариф."""
+    return await _api_upgrade_plan(telegram_id, plan)
 
 
-def deduct_chars(telegram_id: int, count: int) -> UserSettings:
-    user = get_user(telegram_id)
-    user.chars_used += count
-    save_user(user)
-    return user
-
-
-def add_chars(telegram_id: int, count: int) -> UserSettings:
-    """Пополнение баланса (рефералы, апгрейд)."""
-    user = get_user(telegram_id)
-    user.chars_limit += count
-    save_user(user)
-    return user
-
-
-def upgrade_plan(telegram_id: int, plan: str) -> UserSettings:
-    """Активирует платный тариф после оплаты Stars."""
-    from services.billing import PLAN_LIMITS
-
-    if plan not in PLAN_LIMITS:
-        raise ValueError(f"Unknown plan: {plan}")
-
-    user = get_user(telegram_id)
-    user.plan = plan
-    user.chars_limit = PLAN_LIMITS[plan]
-    user.chars_used = 0
-    save_user(user)
-    return user
-
-
-def get_all_users_count() -> int:
-    return len(_store)
+async def sync_ui_language(telegram_id: int, ui_language: str) -> bool:
+    """Синхронизирует язык интерфейса."""
+    return await _api_update_settings(telegram_id, ui_language=ui_language)

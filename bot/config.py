@@ -40,6 +40,18 @@ class Settings(BaseSettings):
     # comma-separated значения (123,456) дают JSONDecodeError.
     admin_tg_ids_raw: str = Field(default="", alias="ADMIN_TG_IDS")
 
+    # Magic numbers (вынесены из хендлеров)
+    max_result_length: int = Field(4096, alias="MAX_RESULT_LENGTH")
+    max_inline_query_len: int = Field(1000, alias="MAX_INLINE_QUERY_LEN")
+    min_inline_query_len: int = Field(2, alias="MIN_INLINE_QUERY_LEN")
+    translate_chunk_size: int = Field(4500, alias="TRANSLATE_CHUNK_SIZE")
+    max_translation_cache: int = Field(500, alias="MAX_TRANSLATION_CACHE")
+    translation_cache_ttl: int = Field(86_400, alias="TRANSLATION_CACHE_TTL")  # 24h
+
+    # Rate limiting
+    max_requests_per_minute: int = Field(30, alias="MAX_REQUESTS_PER_MINUTE")
+    max_translate_per_minute: int = Field(15, alias="MAX_TRANSLATE_PER_MINUTE")
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def admin_tg_ids(self) -> list[int]:

@@ -21,6 +21,8 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from config import settings
 from handlers import start, translate, inline, errors, billing
 from middlewares.throttle import ThrottleMiddleware
+from services.cache import close_redis
+from services.api_client import close_session
 
 
 def setup_logging() -> None:
@@ -100,7 +102,10 @@ async def main() -> None:
             allowed_updates=dp.resolve_used_update_types(),
         )
     finally:
+        # Graceful shutdown
         await bot.session.close()
+        await close_redis()
+        await close_session()
         logger.info("Bot stopped")
 
 

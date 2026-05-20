@@ -8,7 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import User, Quota
 from core.security import hash_telegram_id
-from services.quota import get_or_create_quota, PLAN_LIMITS
+from services.quota import get_or_create_quota
+from services.constants import PLAN_LIMITS
 
 logger = logging.getLogger(__name__)
 

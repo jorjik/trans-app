@@ -15,15 +15,13 @@ from services.storage import get_user, deduct_chars
 from keyboards.inline_kb import upgrade_kb, translate_result_kb, popular_langs_kb
 from utils.languages import resolve_lang, get_lang_label, get_lang_name, get_lang_flag
 from utils.i18n import t
+from config import settings
+from services.api_client import UserData
 
 logger = logging.getLogger(__name__)
 router = Router(name="translate")
+MAX_RESULT_LENGTH = settings.max_result_length
 
-MAX_RESULT_LENGTH = 4096  # Telegram message limit
-
-
-# In-memory хранилище последнего переведённого текста (для retranslate)
-_last_source_text: dict[int, str] = {}
 
 
 # ── /tr ────────────────────────────────────────────────────
@@ -36,7 +34,7 @@ async def cmd_tr(message: Message) -> None:
       /tr            → переводит на язык пользователя по умолчанию
       /tr en         → переводит на английский
     """
-    user = get_user(message.from_user.id)
+    user = await get_user(message.from_user.id)
 
     if user.is_quota_exceeded:
         await _send_quota_exceeded(message, user)
@@ -94,8 +92,8 @@ async def cmd_tr(message: Message) -> None:
 
     # Списываем символы (только если не из кэша)
     if not result.cached:
-        deduct_chars(message.from_user.id, result.char_count)
-        updated_user = get_user(message.from_user.id)
+        await deduct_chars(message.from_user.id, result.char_count)
+        updated_user = await get_user(message.from_user.id)
     else:
         updated_user = user
 
@@ -147,7 +145,7 @@ async def cmd_to(message: Message) -> None:
       /to en Привет, как дела?
       /to de Что нового?
     """
-    user = get_user(message.from_user.id)
+    user = await get_user(message.from_user.id)
 
     if user.is_quota_exceeded:
         await _send_quota_exceeded(message, user)
@@ -198,7 +196,7 @@ async def cmd_to(message: Message) -> None:
         return
 
     if not result.cached:
-        deduct_chars(message.from_user.id, result.char_count)
+        await deduct_chars(message.from_user.id, result.char_count)
 
     flag = get_lang_flag(result.target_lang)
     lang_name = get_lang_name(result.target_lang)
@@ -216,7 +214,7 @@ async def cmd_to(message: Message) -> None:
 @router.callback_query(F.data.startswith("retranslate:"))
 async def cb_retranslate(callback: CallbackQuery) -> None:
     """Показывает список языков для повторного перевода."""
-    user = get_user(callback.from_user.id)
+    user = await get_user(callback.from_user.id)
     await callback.message.edit_text(
         t("lang_popular", user.ui_language),
         reply_markup=popular_langs_kb(user.ui_language, callback_prefix="retranslate_to"),
@@ -227,7 +225,7 @@ async def cb_retranslate(callback: CallbackQuery) -> None:
 @router.callback_query(F.data.startswith("retranslate_to:"))
 async def cb_retranslate_to(callback: CallbackQuery) -> None:
     """Переводит сохранённый текст на выбранный язык."""
-    user = get_user(callback.from_user.id)
+    user = await get_user(callback.from_user.id)
     target_lang = callback.data.split(":", 1)[1]
 
     original_text = _last_source_text.get(callback.from_user.id)
@@ -259,8 +257,8 @@ async def cb_retranslate_to(callback: CallbackQuery) -> None:
         return
 
     if not result.cached:
-        deduct_chars(callback.from_user.id, result.char_count)
-        updated_user = get_user(callback.from_user.id)
+        await deduct_chars(callback.from_user.id, result.char_count)
+        updated_user = await get_user(callback.from_user.id)
     else:
         updated_user = user
 
@@ -309,7 +307,7 @@ def _split_message(text: str, max_len: int) -> list[str]:
     return chunks
 
 
-async def _send_quota_exceeded(message: Message, user) -> None:
+async def _send_quota_exceeded(message: Message, user: UserData) -> None:
     """Сообщение о превышении квоты."""
     text = (
         f"{t('quota_exceeded_title', user.ui_language)}\n\n"

@@ -6,7 +6,8 @@ Auth service — FastAPI dependency для получения текущего �
 import logging
 from typing import Annotated
 
-from fastapi import Depends, Header
+from fastapi import Depends, Header, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,35 +16,38 @@ from core.security import decode_access_token, hash_telegram_id, validate_init_d
 from db.session import get_db
 from models import User, Quota
 from services.quota import get_or_create_quota
+from services.user_service import get_user_with_quota
 from core.config import settings
 
+security = HTTPBearer()
 log = logging.getLogger(__name__)
 
 
 async def get_current_user(
-    authorization: Annotated[str | None, Header()] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db),
 ) -> User:
     """
     FastAPI dependency. Декодирует JWT из заголовка Authorization.
-    Возвращает объект User из БД.
+    Возвращает объект User из БД с квотой.
+    Использует get_user_with_quota для гарантии наличия Quota.
     """
-    if not authorization or not authorization.startswith("Bearer "):
-        raise UnauthorizedError("Missing or invalid Authorization header")
-
-    token = authorization.removeprefix("Bearer ").strip()
-
     try:
-        payload = decode_access_token(token)
-    except ValueError as e:
-        raise UnauthorizedError(str(e))
+        payload = decode_access_token(credentials.credentials)
+        user_id = int(payload["sub"])
+    except (ValueError, KeyError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
-    user_id = int(payload["sub"])
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
-
+    user = await get_user_with_quota(db, user_id)
     if not user or not user.is_active:
-        raise UnauthorizedError("User not found or inactive")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or inactive",
+        )
 
     return user
 

@@ -24,13 +24,16 @@ class BillablePlan:
     stars: int
 
 
-# Держать price_stars в синхроне с api/services/billing_plans.py
+# Звёздные тарифы для Telegram Stars инвойсов.
+# Лимиты символов дублируют api/services/constants.py (единый источник правды).
+# При изменении тарифов — обновлять в обоих местах.
 BILLABLE_PLANS: dict[str, BillablePlan] = {
     "starter": BillablePlan("starter", "Starter", 500_000, 250),
     "pro": BillablePlan("pro", "Pro", 2_000_000, 750),
     "business": BillablePlan("business", "Business", 10_000_000, 2500),
 }
 
+# PLAN_LIMITS для обратной совместимости; storage.py теперь использует API
 PLAN_LIMITS = {p.id: p.chars_limit for p in BILLABLE_PLANS.values()}
 PLAN_LIMITS["free"] = 50_000
 

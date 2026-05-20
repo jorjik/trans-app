@@ -11,13 +11,14 @@ from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject, Message, CallbackQuery
 from cachetools import TTLCache
 
+from config import settings
+from utils.i18n import t
+from services.storage import get_user
+
 logger = logging.getLogger(__name__)
 
 # Кэш: user_id → список timestamp'ов запросов
 _rate_cache: TTLCache = TTLCache(maxsize=10_000, ttl=60)
-
-MAX_REQUESTS_PER_MINUTE = 30  # запросов/минуту на пользователя
-MAX_TRANSLATE_PER_MINUTE = 15  # переводов/минуту на пользователя
 
 
 class ThrottleMiddleware(BaseMiddleware):
@@ -42,11 +43,14 @@ class ThrottleMiddleware(BaseMiddleware):
         # Оставляем только запросы за последнюю минуту
         _rate_cache[uid] = [t for t in _rate_cache[uid] if now - t < 60]
 
-        if len(_rate_cache[uid]) >= MAX_REQUESTS_PER_MINUTE:
+        if len(_rate_cache[uid]) >= settings.max_requests_per_minute:
             logger.warning("Rate limit hit for user %s", uid)
             if isinstance(event, Message):
+                ui_lang = (event.from_user.language_code or "en")[:2]
+                if ui_lang not in ("en", "ru", "uk"):
+                    ui_lang = "en"
                 await event.answer(
-                    "⏳ Слишком много запросов. Подожди немного.",
+                    t("throttle_message", ui_lang),
                     disable_notification=True,
                 )
             return  # не вызываем handler

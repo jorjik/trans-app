@@ -3,6 +3,7 @@ Inline query handler.
 @botname текст → показывает варианты перевода на топ-3 языка.
 """
 
+import asyncio
 import logging
 from aiogram import Router
 from aiogram.types import (
@@ -15,20 +16,18 @@ from services.translator import translate
 from services.storage import get_user
 from utils.languages import get_lang_flag, get_lang_name
 from utils.i18n import t
+from config import settings
 
 logger = logging.getLogger(__name__)
 router = Router(name="inline")
-
-MIN_QUERY_LEN = 2
-MAX_QUERY_LEN = 1000
 
 
 @router.inline_query()
 async def handle_inline_query(query: InlineQuery) -> None:
     text = query.query.strip()
-    user = get_user(query.from_user.id)
+    user = await get_user(query.from_user.id)
 
-    if len(text) < MIN_QUERY_LEN:
+    if len(text) < settings.min_inline_query_len:
         await query.answer(
             results=[],
             switch_pm_text=t("inline_placeholder", user.ui_language),
@@ -37,7 +36,7 @@ async def handle_inline_query(query: InlineQuery) -> None:
         )
         return
 
-    if len(text) > MAX_QUERY_LEN:
+    if len(text) > settings.max_inline_query_len:
         await query.answer(
             results=[],
             switch_pm_text=t("inline_too_long", user.ui_language),
@@ -55,41 +54,42 @@ async def handle_inline_query(query: InlineQuery) -> None:
         )
         return
 
-    # Берём топ-4 языка пользователя (без языка источника если определим)
+    # Берём топ-4 языка пользователя
     target_langs = user.favorite_langs[:4]
 
-    # Переводим параллельно
+    # Параллельный перевод через asyncio.gather
+    sem = asyncio.Semaphore(3)  # ограничиваем конкурентность
+
+    async def _translate_one(lang: str):
+        async with sem:
+            return lang, await translate(text, lang)
+
+    tasks = [_translate_one(lang) for lang in target_langs]
+    completed = await asyncio.gather(*tasks, return_exceptions=True)
+
     results = []
-    tasks_done = 0
-
-    for lang_code in target_langs:
-        if tasks_done >= 4:
-            break
-        try:
-            result = await translate(text, lang_code)
-
-            flag = get_lang_flag(lang_code)
-            lang_name = get_lang_name(lang_code)
-
-            # Не показываем если перевод совпадает с оригиналом
-            if result.translated_text.strip().lower() == text.lower():
-                continue
-
-            article = InlineQueryResultArticle(
-                id=f"translate_{lang_code}",
-                title=f"{flag} {lang_name}",
-                description=result.translated_text[:100],
-                input_message_content=InputTextMessageContent(
-                    message_text=result.translated_text,
-                ),
-                thumb_url=None,
-            )
-            results.append(article)
-            tasks_done += 1
-
-        except Exception as e:
-            logger.warning("Inline translate error for %s: %s", lang_code, e)
+    for item in completed:
+        if isinstance(item, Exception):
             continue
+        lang_code, result = item
+
+        # Не показываем если перевод совпадает с оригиналом
+        if result.translated_text.strip().lower() == text.lower():
+            continue
+
+        flag = get_lang_flag(lang_code)
+        lang_name = get_lang_name(lang_code)
+
+        article = InlineQueryResultArticle(
+            id=f"translate_{lang_code}",
+            title=f"{flag} {lang_name}",
+            description=result.translated_text[:100],
+            input_message_content=InputTextMessageContent(
+                message_text=result.translated_text,
+            ),
+            thumb_url=None,
+        )
+        results.append(article)
 
     if not results:
         await query.answer(

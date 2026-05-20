@@ -82,6 +82,25 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# ── Middleware ──────────────────────────────────────────────────────────────────
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Логирует все HTTP-запросы с длительностью и статусом."""
+    import time
+    start = time.monotonic()
+    response = await call_next(request)
+    duration = time.monotonic() - start
+    structlog.get_logger().info(
+        "http_request",
+        method=request.method,
+        path=request.url.path,
+        status=response.status_code,
+        duration_ms=round(duration * 1000),
+    )
+    return response
+
+
 # CORS
 app.add_middleware(
     CORSMiddleware,

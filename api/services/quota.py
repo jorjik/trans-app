@@ -16,20 +16,7 @@ from core.errors import QuotaExceededError
 
 log = logging.getLogger(__name__)
 
-# Лимиты по планам
-PLAN_LIMITS: dict[str, int] = {
-    "free":     50_000,
-    "starter":  500_000,
-    "pro":      2_000_000,
-    "business": 10_000_000,
-}
-
-MAX_CHATS_BY_PLAN: dict[str, int] = {
-    "free":     2,
-    "starter":  5,
-    "pro":      20,
-    "business": 50,
-}
+from services.constants import PLAN_LIMITS, MAX_CHATS_BY_PLAN
 
 
 def _next_reset() -> datetime:

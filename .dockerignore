@@ -8,8 +8,7 @@ docs
 infra
 README.md
 
-# Other services (not needed for this build)
-# Each Dockerfile only copies what it needs
+# Each Dockerfile copies only what it needs (bot/, api/ directories are in context)
 
 **/__pycache__
 **/*.py[cod]

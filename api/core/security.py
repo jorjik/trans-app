@@ -119,7 +119,9 @@ def decode_access_token(token: str) -> dict:
 def validate_webhook_secret(secret: Optional[str]) -> bool:
     """Проверяет секрет webhook от Telegram."""
     if not settings.bot_webhook_secret:
-        return True  # секрет не настроен — пропускаем
+        if settings.env != "development":
+            return False
+        return True  # секрет не настроен — пропускаем только в dev
     if not secret:
         return False
     return hmac.compare_digest(secret, settings.bot_webhook_secret)

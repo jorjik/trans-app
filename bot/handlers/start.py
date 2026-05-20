@@ -9,7 +9,7 @@ from aiogram.filters.command import CommandObject
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.markdown import hbold
 
-from services.storage import get_user, set_target_language
+from services.storage import get_user, set_target_language, sync_ui_language
 from keyboards.inline_kb import main_menu_kb, change_lang_kb, popular_langs_kb, upgrade_kb, back_main_kb, ui_lang_kb
 from utils.languages import get_lang_label, resolve_lang, get_lang_name, get_lang_flag
 from utils.i18n import t, PLAN_EMOJI, plan_name
@@ -46,7 +46,7 @@ async def cmd_start(message: Message, command: CommandObject) -> None:
             await start_checkout(message, plan_id)
             return
 
-    user = get_user(message.from_user.id)
+    user = await get_user(message.from_user.id)
 
     # Новый пользователь — показываем выбор языка интерфейса
     if not user.ui_language:
@@ -82,11 +82,26 @@ async def cmd_start(message: Message, command: CommandObject) -> None:
         reply_markup=main_menu_kb(settings.mini_app_url, user.ui_language),
         parse_mode="HTML",
     )
+    bot_me = await message.bot.get_me()
+
+    text = t("start_greeting", user.ui_language,
+        name=hbold(name),
+        bot_username=bot_me.username,
+        target_lang=get_lang_label(user.target_language),
+        chars_remaining=user.chars_remaining,
+        chars_limit=user.chars_limit,
+    )
+
+    await message.answer(
+        text,
+        reply_markup=main_menu_kb(settings.mini_app_url, user.ui_language),
+        parse_mode="HTML",
+    )
 
 
 @router.message(Command("help"))
 async def cmd_help(message: Message) -> None:
-    user = get_user(message.from_user.id)
+    user = await get_user(message.from_user.id)
     text = (
         f"<b>{t('help_title', user.ui_language)}</b>\n\n"
         f"<b>{t('help_incoming_title', user.ui_language)}</b>\n"
@@ -109,7 +124,7 @@ async def cmd_help(message: Message) -> None:
 
 @router.message(Command("lang"))
 async def cmd_lang(message: Message) -> None:
-    user = get_user(message.from_user.id)
+    user = await get_user(message.from_user.id)
 
     # /lang de — сразу устанавливаем язык
     args = message.text.split()[1:]
@@ -121,7 +136,7 @@ async def cmd_lang(message: Message) -> None:
                 parse_mode="HTML",
             )
             return
-        updated = set_target_language(message.from_user.id, code)
+        await set_target_language(message.from_user.id, code)
         await message.answer(
             t("lang_set", user.ui_language, label=get_lang_label(code), name=get_lang_name(code)),
             parse_mode="HTML",
@@ -138,7 +153,7 @@ async def cmd_lang(message: Message) -> None:
 
 @router.message(Command("quota"))
 async def cmd_quota(message: Message) -> None:
-    user = get_user(message.from_user.id)
+    user = await get_user(message.from_user.id)
 
     # Процент использования
     pct = (user.chars_used / user.chars_limit * 100) if user.chars_limit > 0 else 0
@@ -166,19 +181,18 @@ async def cmd_quota(message: Message) -> None:
 @router.message(Command("uilang"))
 async def cmd_uilang(message: Message) -> None:
     """Команда для смены языка интерфейса бота и Mini App."""
-    user = get_user(message.from_user.id)
+    user = await get_user(message.from_user.id)
 
     # /uilang ru — сразу устанавливаем
     args = message.text.split()[1:]
     if args:
         code = args[0].strip().lower()
         if code in ("en", "ru", "uk"):
-            user.ui_language = code
-            from services.storage import save_user
-            save_user(user)
+            await sync_ui_language(message.from_user.id, code)
             await _sync_ui_lang(message.from_user.id, code)
+            user2 = await get_user(message.from_user.id)
             await message.answer(
-                t("uilang_set", user.ui_language, label=get_lang_label(code)),
+                t("uilang_set", user2.ui_language, label=get_lang_label(code)),
                 parse_mode="HTML",
             )
             return
@@ -200,7 +214,7 @@ async def cmd_uilang(message: Message) -> None:
 
 @router.callback_query(F.data == "help")
 async def cb_help(callback: CallbackQuery) -> None:
-    user = get_user(callback.from_user.id)
+    user = await get_user(callback.from_user.id)
     text = (
         f"<b>{t('help_title', user.ui_language)}</b>\n\n"
         f"<b>{t('help_incoming_title', user.ui_language)}</b>\n"
@@ -224,7 +238,7 @@ async def cb_help(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "quota")
 async def cb_quota(callback: CallbackQuery) -> None:
-    user = get_user(callback.from_user.id)
+    user = await get_user(callback.from_user.id)
     pct = (user.chars_used / user.chars_limit * 100) if user.chars_limit > 0 else 0
     bar_filled = int(pct / 10)
     bar = "█" * bar_filled + "░" * (10 - bar_filled)
@@ -247,7 +261,7 @@ async def cb_quota(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "change_lang")
 async def cb_change_lang(callback: CallbackQuery) -> None:
-    user = get_user(callback.from_user.id)
+    user = await get_user(callback.from_user.id)
     await callback.message.edit_text(
         t("lang_choose", user.ui_language, label=get_lang_label(user.target_language)),
         reply_markup=change_lang_kb(user.favorite_langs, user.ui_language),
@@ -258,7 +272,7 @@ async def cb_change_lang(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "search_lang")
 async def cb_search_lang(callback: CallbackQuery) -> None:
-    user = get_user(callback.from_user.id)
+    user = await get_user(callback.from_user.id)
     await callback.message.edit_text(
         t("lang_popular", user.ui_language),
         reply_markup=popular_langs_kb(user.ui_language),
@@ -268,9 +282,9 @@ async def cb_search_lang(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data.startswith("setlang:"))
 async def cb_set_lang(callback: CallbackQuery) -> None:
-    user = get_user(callback.from_user.id)
+    user = await get_user(callback.from_user.id)
     code = callback.data.split(":")[1]
-    updated = set_target_language(callback.from_user.id, code)
+    await set_target_language(callback.from_user.id, code)
     await callback.answer(t("lang_set_success", user.ui_language, label=get_lang_label(code)), show_alert=False)
     await callback.message.edit_text(
         t("lang_set_done", user.ui_language, label=get_lang_label(code), name=get_lang_name(code)),
@@ -290,7 +304,7 @@ async def cb_dismiss(callback: CallbackQuery) -> None:
 @router.callback_query(F.data == "back_main")
 async def cb_back_main(callback: CallbackQuery) -> None:
     await callback.answer()
-    user = get_user(callback.from_user.id)
+    user = await get_user(callback.from_user.id)
     await callback.message.edit_text(
         t("back_main_status", user.ui_language, label=get_lang_label(user.target_language), remaining=user.chars_remaining),
         reply_markup=main_menu_kb(settings.mini_app_url, user.ui_language),
@@ -301,13 +315,10 @@ async def cb_back_main(callback: CallbackQuery) -> None:
 @router.callback_query(F.data.startswith("set_ui_lang:"))
 async def cb_set_ui_lang(callback: CallbackQuery) -> None:
     code = callback.data.split(":")[1]
-    user = get_user(callback.from_user.id)
-    user.ui_language = code
-    from services.storage import save_user
-    save_user(user)
+    await sync_ui_language(callback.from_user.id, code)
     await _sync_ui_lang(callback.from_user.id, code)
+    user = await get_user(callback.from_user.id)
 
-    # Если это был стартовый выбор — показываем главное меню
     await callback.answer(t("lang_set_success", user.ui_language, label=get_lang_label(code)), show_alert=False)
 
     # Если пользователь новый (не было ui_language до), показываем main menu
@@ -331,7 +342,7 @@ async def cb_set_ui_lang(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "referral")
 async def cb_referral(callback: CallbackQuery) -> None:
-    user = get_user(callback.from_user.id)
+    user = await get_user(callback.from_user.id)
     bot = callback.bot
     bot_info = await bot.get_me()
     ref_link = f"https://t.me/{bot_info.username}?start=ref_{callback.from_user.id}"

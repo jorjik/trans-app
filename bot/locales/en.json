@@ -80,5 +80,6 @@
   "plan_starter": "Starter",
   "plan_pro": "Pro",
   "plan_business": "Business",
-  "plan_free": "Free"
+  "plan_free": "Free",
+  "throttle_message": "⏳ Too many requests. Please wait a moment."
 }
