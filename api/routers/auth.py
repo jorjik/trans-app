@@ -32,7 +32,7 @@ async def auth_telegram(
     except InitDataError as e:
         raise UnauthorizedError(f"Invalid init_data: {e}")
 
-    user = await get_or_create_user(tg_user, db)
+    user, is_new = await get_or_create_user(tg_user, db)
     quota = await get_or_create_quota(db, user.id)
 
     token = create_access_token(user.id, user.telegram_id)
@@ -40,6 +40,7 @@ async def auth_telegram(
     return TokenResponse(
         access_token=token,
         expires_in=settings.jwt_expire_seconds,
+        is_new=is_new,
         user=UserResponse(
             id=user.id,
             ui_language=user.ui_language,

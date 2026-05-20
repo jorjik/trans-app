@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     free_plan_chars: int = Field(50_000, alias="FREE_PLAN_CHARS")
     referral_bonus_chars: int = Field(10_000, alias="REFERRAL_BONUS_CHARS")
 
+    # Internal
+    bot_internal_secret: str = Field("change-me-bot-secret", alias="BOT_INTERNAL_SECRET")
+
     # Admin
     admin_tg_ids: list[int] = Field(default_factory=list, alias="ADMIN_TG_IDS")
 

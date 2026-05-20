@@ -66,6 +66,7 @@ export function Settings({ user, onSave, isSaving }: SettingsProps) {
             label={t('settings.ui_language', uiLang)}
             data={[
               { value: 'ru', label: t('settings.ui_lang_ru', uiLang) },
+              { value: 'uk', label: t('settings.ui_lang_uk', uiLang) },
               { value: 'en', label: t('settings.ui_lang_en', uiLang) },
             ]}
             value={uiLang}

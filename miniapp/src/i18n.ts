@@ -63,6 +63,7 @@ export const LOCALES: Record<string, Record<string, string>> = {
     'settings.ui_language': 'Язык интерфейса',
     'settings.ui_lang_ru': 'Русский',
     'settings.ui_lang_en': 'English',
+    'settings.ui_lang_uk': 'Українська',
     /* QuickTranslate */
     'qt.title': 'Быстрый перевод',
     'qt.desc': 'Вызывает тот же API, что и бот. Кэшированные запросы не расходуют квоту.',
@@ -86,6 +87,107 @@ export const LOCALES: Record<string, Record<string, string>> = {
     'stats.chars': 'Использование символов',
     /* LangPicker */
     'lang.not_found': 'Языки не найдены',
+    /* Start LangPicker */
+    'langpicker.title': 'Welcome! Choose your language',
+    'langpicker.desc': 'Select your interface language. You can change it later in Settings.',
+    'langpicker.en': 'English',
+    'langpicker.ru': 'Русский',
+    'langpicker.uk': 'Українська',
+    'langpicker.continue': 'Continue',
+  },
+  uk: {
+    /* App */
+    'app.loading': 'Initializing TransApp...',
+    'app.error.title': 'TransApp Mini App',
+    'app.auth_failed': 'Помилка авторизації.',
+    'app.init_error': 'Не вдалося ініціалізувати додаток.',
+    'app.save_error': 'Не вдалося зберегти налаштування.',
+    'app.chat_create_error': 'Не вдалося створити чат.',
+    'app.chat_update_error': 'Не вдалося оновити чат.',
+    'app.chat_delete_error': 'Не вдалося видалити чат.',
+    'app.payment_failed': 'Платіж не вдався. Спробуйте ще раз.',
+    'app.checkout_error': 'Не вдалося створити чек.',
+    /* Nav */
+    'nav.dashboard': 'Панель',
+    'nav.chats': 'Чати',
+    'nav.billing': 'Тарифи',
+    'nav.settings': 'Налаштування',
+    /* Navbar */
+    'nav.plan_remaining': 'План: {plan} · Залишилось: {chars}',
+    /* Dashboard */
+    'dashboard.title': 'Панель',
+    'dashboard.desc': 'Огляд квоти та активності перекладів.',
+    'dashboard.plan': 'План',
+    'dashboard.remaining': 'Залишилось',
+    'dashboard.default_lang': 'Мова за замовчуванням',
+    'dashboard.totals': 'Всього',
+    'dashboard.requests': 'Запитів: {n}',
+    'dashboard.chars': 'Символів: {n}',
+    /* Billing */
+    'billing.title': 'Тарифи',
+    'billing.desc': 'Збільште місячну квоту за допомогою Telegram Stars.',
+    'billing.chars_month': '{n} символів / міс',
+    'billing.stars': '{n} Stars',
+    'billing.current_plan': 'Поточний план',
+    'billing.pay_stars': 'Сплатити Stars',
+    /* Chats */
+    'chats.title': 'Чати',
+    'chats.desc': 'Керуйте правилами автоперекладу для чатів Telegram.',
+    'chats.username_label': 'Username чату',
+    'chats.username_placeholder': 'devs_world',
+    'chats.source': 'Джерело',
+    'chats.target': 'Ціль',
+    'chats.limit_reached': 'Ліміт чатів перевищено для вашого плану.',
+    'chats.can_add': 'Ви можете додати новий чат для автоперекладу.',
+    'chats.add_btn': 'Додати чат',
+    'chats.table_chat': 'Чат',
+    'chats.table_langs': 'Мови',
+    'chats.table_status': 'Статус',
+    'chats.empty': 'Ще немає чатів для автоперекладу. Додайте вище (публічний username без @).',
+    /* Settings */
+    'settings.title': 'Налаштування',
+    'settings.desc': 'Налаштуйте параметри перекладу за замовчуванням.',
+    'settings.target_lang': 'Мова перекладу',
+    'settings.favorite_langs': 'Обрані мови',
+    'settings.engine': 'Рушій перекладу',
+    'settings.engine_auto': 'Авто',
+    'settings.engine_google': 'Google Free',
+    'settings.engine_deepl': 'DeepL',
+    'settings.save_btn': 'Зберегти',
+    'settings.ui_language': 'Мова інтерфейсу',
+    'settings.ui_lang_ru': 'Русский',
+    'settings.ui_lang_en': 'English',
+    'settings.ui_lang_uk': 'Українська',
+    /* QuickTranslate */
+    'qt.title': 'Швидкий переклад',
+    'qt.desc': 'Викликає той самий API, що й бот. Кешовані запити не витрачають квоту.',
+    'qt.text_label': 'Текст',
+    'qt.text_placeholder': 'Введіть текст для перекладу...',
+    'qt.source': 'Джерело',
+    'qt.target': 'Ціль',
+    'qt.engine': 'Рушій',
+    'qt.translate_btn': 'Перекласти',
+    'qt.chars_left': 'залишилось {n} символів',
+    'qt.from_cache': 'З кешу · ',
+    'qt.failed': 'Помилка перекладу.',
+    'qt.result': 'Результат',
+    'qt.provider': '{provider} · виявлено {lang}',
+    'qt.copy': 'Копіювати',
+    'qt.copied': 'Скопійовано!',
+    /* QuotaBar */
+    'quota.title': 'Місячна квота',
+    'quota.used': 'Використано {used} / {limit} символів',
+    /* StatsChart */
+    'stats.chars': 'Використання символів',
+    /* LangPicker */
+    'lang.not_found': 'Мови не знайдено',
+    /* Start LangPicker */
+    'langpicker.title': 'Ласкаво просимо! Оберіть мову',
+    'langpicker.desc': 'Оберіть мову інтерфейсу. Її можна змінити пізніше в налаштуваннях.',
+    'langpicker.en': 'English',
+    'langpicker.ru': 'Русский',
+    'langpicker.uk': 'Українська',
+    'langpicker.continue': 'Продовжити',
   },
   en: {
     /* App */
@@ -149,6 +251,7 @@ export const LOCALES: Record<string, Record<string, string>> = {
     'settings.ui_language': 'Interface language',
     'settings.ui_lang_ru': 'Русский',
     'settings.ui_lang_en': 'English',
+    'settings.ui_lang_uk': 'Українська',
     /* QuickTranslate */
     'qt.title': 'Quick translate',
     'qt.desc': 'Calls the same API as the bot. Cached hits do not spend quota.',
@@ -172,6 +275,13 @@ export const LOCALES: Record<string, Record<string, string>> = {
     'stats.chars': 'Character usage',
     /* LangPicker */
     'lang.not_found': 'No languages found',
+    /* Start LangPicker */
+    'langpicker.title': 'Welcome! Choose your language',
+    'langpicker.desc': 'Select your interface language. You can change it later in Settings.',
+    'langpicker.en': 'English',
+    'langpicker.ru': 'Русский',
+    'langpicker.uk': 'Українська',
+    'langpicker.continue': 'Continue',
   },
 };
 

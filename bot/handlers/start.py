@@ -1,6 +1,8 @@
 """Обработчик /start и главного меню."""
 
 import logging
+
+import aiohttp
 from aiogram import Router, F
 from aiogram.filters import CommandStart, Command
 from aiogram.filters.command import CommandObject
@@ -17,6 +19,22 @@ logger = logging.getLogger(__name__)
 router = Router(name="start")
 
 
+async def _sync_ui_lang(telegram_id: int, ui_language: str) -> None:
+    """Синхронизирует ui_language с API (ботовый internal endpoint)."""
+    if not settings.api_url:
+        return
+    try:
+        async with aiohttp.ClientSession() as session:
+            await session.post(
+                f"{settings.api_url}/internal/sync-ui-lang",
+                json={"telegram_id": telegram_id, "ui_language": ui_language},
+                headers={"X-Bot-Secret": settings.bot_internal_secret},
+                timeout=aiohttp.ClientTimeout(total=5),
+            )
+    except Exception as e:
+        logger.warning("sync-ui-lang failed for %s: %s", telegram_id, e)
+
+
 @router.message(CommandStart())
 async def cmd_start(message: Message, command: CommandObject) -> None:
     if command.args:
@@ -29,18 +47,26 @@ async def cmd_start(message: Message, command: CommandObject) -> None:
             return
 
     user = get_user(message.from_user.id)
-    name = message.from_user.first_name or t("start_friend", user.ui_language)
 
-    # Устанавливаем язык интерфейса из Telegram при первом запуске
-    if not message.from_user.language_code or message.from_user.language_code.startswith("ru"):
-        default_ui = "ru"
-    else:
-        default_ui = "en"
+    # Новый пользователь — показываем выбор языка интерфейса
     if not user.ui_language:
-        user.ui_language = default_ui
-        from services.storage import save_user
-        save_user(user)
+        # Определяем язык по умолчанию из Telegram
+        tg_lang = (message.from_user.language_code or "en")[:2]
+        if tg_lang not in ("en", "ru", "uk"):
+            tg_lang = "en"
 
+        # Показываем приветствие с выбором языка
+        await message.answer(
+            "🌐 <b>Welcome! / Ласкаво просимо! / Добро пожаловать!</b>\n\n"
+            "Choose your interface language:\n"
+            "Оберіть мову інтерфейсу:\n"
+            "Выберите язык интерфейса:",
+            reply_markup=ui_lang_kb(tg_lang),
+            parse_mode="HTML",
+        )
+        return
+
+    name = message.from_user.first_name or t("start_friend", user.ui_language)
     bot_me = await message.bot.get_me()
 
     text = t("start_greeting", user.ui_language,
@@ -146,12 +172,19 @@ async def cmd_uilang(message: Message) -> None:
     args = message.text.split()[1:]
     if args:
         code = args[0].strip().lower()
-        if code in ("ru", "en"):
+        if code in ("en", "ru", "uk"):
             user.ui_language = code
             from services.storage import save_user
             save_user(user)
+            await _sync_ui_lang(message.from_user.id, code)
             await message.answer(
                 t("uilang_set", user.ui_language, label=get_lang_label(code)),
+                parse_mode="HTML",
+            )
+            return
+        else:
+            await message.answer(
+                "❌ Доступные языки: en, ru, uk",
                 parse_mode="HTML",
             )
             return
@@ -272,9 +305,26 @@ async def cb_set_ui_lang(callback: CallbackQuery) -> None:
     user.ui_language = code
     from services.storage import save_user
     save_user(user)
+    await _sync_ui_lang(callback.from_user.id, code)
+
+    # Если это был стартовый выбор — показываем главное меню
     await callback.answer(t("lang_set_success", user.ui_language, label=get_lang_label(code)), show_alert=False)
+
+    # Если пользователь новый (не было ui_language до), показываем main menu
+    # Иначе просто подтверждаем смену
+    name = callback.from_user.first_name or t("start_friend", user.ui_language)
+    bot_me = await callback.bot.get_me()
+
+    text = t("start_greeting", user.ui_language,
+        name=hbold(name),
+        bot_username=bot_me.username,
+        target_lang=get_lang_label(user.target_language),
+        chars_remaining=user.chars_remaining,
+        chars_limit=user.chars_limit,
+    )
     await callback.message.edit_text(
-        t("uilang_set", user.ui_language, label=get_lang_label(code)),
+        text,
+        reply_markup=main_menu_kb(settings.mini_app_url, user.ui_language),
         parse_mode="HTML",
     )
 

@@ -25,7 +25,7 @@ from core.errors import (
 )
 from db.session import engine
 from services.cache import get_redis, close_redis
-from routers import auth, translate, users, chats, stats, billing, webhook
+from routers import auth, translate, users, chats, stats, billing, webhook, internal
 
 
 # ── Logging ────────────────────────────────────────────────────────────────────
@@ -104,6 +104,7 @@ app.include_router(chats.router)
 app.include_router(stats.router)
 app.include_router(billing.router)
 app.include_router(webhook.router)
+app.include_router(internal.router)
 
 
 # ── Health check ───────────────────────────────────────────────────────────────

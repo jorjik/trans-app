@@ -97,16 +97,17 @@ def popular_langs_kb(ui_lang: str = "ru", callback_prefix: str = "setlang") -> I
 
 
 def ui_lang_kb(current_ui_lang: str = "ru") -> InlineKeyboardMarkup:
-    """Клавиатура выбора языка интерфейса (RU / EN)."""
+    """Клавиатура выбора языка интерфейса (EN / RU / UK)."""
     builder = InlineKeyboardBuilder()
-    builder.button(
-        text="🇷🇺 Русский" if current_ui_lang != "ru" else "✅ 🇷🇺 Русский",
-        callback_data="set_ui_lang:ru",
-    )
-    builder.button(
-        text="🇬🇧 English" if current_ui_lang != "en" else "✅ 🇬🇧 English",
-        callback_data="set_ui_lang:en",
-    )
+    for code, flag, name in [
+        ("en", "🇬🇧", "English"),
+        ("ru", "🇷🇺", "Русский"),
+        ("uk", "🇺🇦", "Українська"),
+    ]:
+        if current_ui_lang == code:
+            builder.button(text=f"✅ {flag} {name}", callback_data="dismiss")
+        else:
+            builder.button(text=f"{flag} {name}", callback_data=f"set_ui_lang:{code}")
     builder.button(text="◀️ " + t("btn_back", current_ui_lang), callback_data="back_main")
     builder.adjust(1)
     return builder.as_markup()

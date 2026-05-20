@@ -2,6 +2,8 @@ import {
   AppShell,
   Avatar,
   Burger,
+  Button,
+  Card,
   Center,
   Group,
   Loader,
@@ -38,7 +40,7 @@ import { Chats } from './pages/Chats';
 import { Dashboard } from './pages/Dashboard';
 import { Settings } from './pages/Settings';
 import { useStore } from './store/useStore';
-import type { ChatConfig } from './types';
+import type { ChatConfig, User } from './types';
 
 export default function App() {
   const queryClient = useQueryClient();
@@ -52,6 +54,8 @@ export default function App() {
   const setReady = useStore((state) => state.setReady);
   const setActiveTab = useStore((state) => state.setActiveTab);
   const [navbarOpened, setNavbarOpened] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(false);
+  const [pickerLang, setPickerLang] = useState('en');
 
   const uiLang = user?.ui_language ?? 'en';
 
@@ -71,6 +75,7 @@ export default function App() {
         const auth = await authWithTelegram(initData);
         setToken(auth.access_token);
         setUser(auth.user);
+        setIsNewUser(auth.is_new);
       } catch (bootstrapError) {
         setError(bootstrapError instanceof Error ? bootstrapError.message : t('app.init_error', uiLang));
       } finally {
@@ -199,6 +204,63 @@ export default function App() {
     ] as const,
     [uiLang],
   );
+
+  const handleLangConfirm = async () => {
+    if (!token) return;
+    try {
+      const updated = await updateMe(token, { ui_language: pickerLang });
+      setUser(updated);
+    } catch {
+      // fallback: keep the default user, they can change in Settings
+    }
+    setIsNewUser(false);
+  };
+
+  if (isNewUser && user) {
+    return (
+      <Center mih="100vh" px="md">
+        <Card withBorder radius="lg" p="xl" maw={400} w="100%">
+          <Stack align="center" gap="lg">
+            <Text fz={32}>🌐</Text>
+            <Stack align="center" gap="xs">
+              <Title order={3}>{t('langpicker.title', pickerLang)}</Title>
+              <Text ta="center" c="dimmed" size="sm">
+                {t('langpicker.desc', pickerLang)}
+              </Text>
+            </Stack>
+            <Stack w="100%" gap="xs">
+              {[
+                { value: 'en', label: t('langpicker.en', pickerLang), flag: '🇬🇧' },
+                { value: 'ru', label: t('langpicker.ru', pickerLang), flag: '🇷🇺' },
+                { value: 'uk', label: t('langpicker.uk', pickerLang), flag: '🇺🇦' },
+              ].map(({ value, label, flag }) => (
+                <Card
+                  key={value}
+                  withBorder
+                  radius="md"
+                  p="sm"
+                  style={{
+                    cursor: 'pointer',
+                    borderColor: pickerLang === value ? 'var(--mantine-color-blue-6)' : undefined,
+                    backgroundColor: pickerLang === value ? 'var(--mantine-color-blue-0)' : undefined,
+                  }}
+                  onClick={() => setPickerLang(value)}
+                >
+                  <Group gap="sm">
+                    <Text fz={24}>{flag}</Text>
+                    <Text fw={pickerLang === value ? 600 : 400}>{label}</Text>
+                  </Group>
+                </Card>
+              ))}
+            </Stack>
+            <Button fullWidth size="md" onClick={handleLangConfirm}>
+              {t('langpicker.continue', pickerLang)}
+            </Button>
+          </Stack>
+        </Card>
+      </Center>
+    );
+  }
 
   if (!isReady) {
     return (

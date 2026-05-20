@@ -1,6 +1,7 @@
 [build]
-root = "bot/"
-startCommand = "python main.py"
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+watchPatterns = ["bot/**", "Dockerfile"]
 
 [deploy]
 restartPolicyType = "ON_FAILURE"

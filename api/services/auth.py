@@ -71,10 +71,11 @@ async def get_or_create_user(
         user.username = telegram_user.get("username")
         user.language_code = telegram_user.get("language_code", user.language_code)
         await db.flush()
-        return user
+        return user, False
 
     # Создаём нового пользователя
-    target_lang = telegram_user.get("language_code", "en")[:2]
+    lang_code = telegram_user.get("language_code", "en")[:2]
+    target_lang = lang_code if lang_code in ("en", "ru", "uk") else "en"
 
     user = User(
         telegram_id=telegram_id,
@@ -82,6 +83,7 @@ async def get_or_create_user(
         username=telegram_user.get("username"),
         first_name=telegram_user.get("first_name"),
         language_code=telegram_user.get("language_code", "en"),
+        ui_language=lang_code if lang_code in ("en", "ru", "uk") else "en",
         target_language=target_lang,
         favorite_langs=_default_langs(target_lang),
     )
@@ -92,7 +94,7 @@ async def get_or_create_user(
     await get_or_create_quota(db, user.id)
 
     log.info("New user created: id=%s", user.id)
-    return user
+    return user, True
 
 
 def _default_langs(primary: str) -> list[str]:

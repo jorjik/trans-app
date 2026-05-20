@@ -8,9 +8,8 @@ docs
 infra
 README.md
 
-# Other services (not needed for API build)
-bot/
-miniapp/
+# Other services (not needed for this build)
+# Each Dockerfile only copies what it needs
 
 **/__pycache__
 **/*.py[cod]
