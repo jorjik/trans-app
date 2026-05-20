@@ -7,10 +7,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc libpq-dev tini \
     && rm -rf /var/lib/apt/lists/*
 
-COPY api/requirements.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY api/ .
+COPY . .
 
 # Не-root пользователь
 USER nobody
