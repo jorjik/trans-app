@@ -1,8 +1,3 @@
 name: trans-app
 
 bees:
-  Claude:
-    command: "freebuff"
-    type: agent
-    auto_rename: true
-

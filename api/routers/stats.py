@@ -22,7 +22,8 @@ async def get_my_stats(
     db: AsyncSession = Depends(get_db),
 ) -> StatsResponse:
     """Статистика за последние N дней."""
-    since = datetime.now(timezone.utc) - timedelta(days=days)
+    today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    since = today - timedelta(days=days - 1)
 
     # Все логи за период
     result = await db.execute(
@@ -59,7 +60,7 @@ async def get_my_stats(
     # Заполняем пропущенные дни нулями
     chars_by_day = []
     for i in range(days):
-        d = (since + timedelta(days=i + 1)).strftime("%Y-%m-%d")
+        d = (since + timedelta(days=i)).strftime("%Y-%m-%d")
         chars_by_day.append(DayStats(date=d, chars=by_day.get(d, 0)))
 
     top_langs = sorted(

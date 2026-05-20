@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.config import settings
 from core.errors import AppError, UnauthorizedError
 from db.session import get_db
-from models import User
+from models import BillingEvent, User
 from schemas import (
     PlansListResponse,
     PlanResponse,
@@ -121,6 +121,25 @@ async def internal_stars_payment(
             error="user_not_found",
             message="User not found for telegram_id",
         )
+
+    existing_payment = await db.execute(
+        select(BillingEvent).where(
+            BillingEvent.provider_charge_id == body.telegram_payment_charge_id
+        )
+    )
+    payment = existing_payment.scalar_one_or_none()
+    if payment:
+        return {"status": "ok", "plan": payment.plan_id, "user_id": payment.user_id}
+
+    db.add(
+        BillingEvent(
+            user_id=user.id,
+            provider="telegram_stars",
+            provider_charge_id=body.telegram_payment_charge_id,
+            plan_id=body.plan_id,
+            amount=body.total_amount,
+        )
+    )
 
     await upgrade_plan(db, user.id, body.plan_id)
     log.info(

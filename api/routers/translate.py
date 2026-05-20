@@ -33,7 +33,7 @@ async def do_translate(
     text = body.text.strip()
     char_count = len(text)
 
-    # Проверяем квоту (выбрасывает QuotaExceededError если нет баланса)
+    # Быстрая предварительная проверка. Финальное списание защищено row lock в quota service.
     await check_quota(db, current_user.id, char_count)
 
     t0 = time.monotonic()

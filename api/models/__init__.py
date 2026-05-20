@@ -98,7 +98,7 @@ class ChatConfig(Base):
     user_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    chat_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    chat_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     chat_username: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     chat_title: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     source_lang: Mapped[str] = mapped_column(String(10), default="auto")
@@ -181,3 +181,23 @@ class Subscription(Base):
 
     user: Mapped["User"] = relationship("User", back_populates="subscriptions")
     plan: Mapped["Plan"] = relationship("Plan")
+
+
+# ── BillingEvent ────────────────────────────────────────────────────────────────
+
+class BillingEvent(Base):
+    __tablename__ = "billing_events"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    provider: Mapped[str] = mapped_column(String(20), nullable=False)
+    provider_charge_id: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
+    plan_id: Mapped[str] = mapped_column(String(20), nullable=False)
+    amount: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, server_default=func.now()
+    )
+
+    user: Mapped["User"] = relationship("User")

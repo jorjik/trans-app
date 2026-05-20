@@ -7,10 +7,10 @@ import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import Quota, User
+from models import Quota
 from core.config import settings
 from core.errors import QuotaExceededError
 
@@ -62,6 +62,23 @@ async def get_or_create_quota(db: AsyncSession, user_id: int) -> Quota:
     return quota
 
 
+async def _get_or_create_quota_for_update(db: AsyncSession, user_id: int) -> Quota:
+    await get_or_create_quota(db, user_id)
+    result = await db.execute(
+        select(Quota)
+        .where(Quota.user_id == user_id)
+        .with_for_update()
+    )
+    return result.scalar_one()
+
+
+def _reset_quota_if_needed(quota: Quota) -> None:
+    if quota.reset_at and datetime.now(timezone.utc) >= quota.reset_at:
+        quota.chars_used = 0
+        quota.reset_at = _next_reset()
+        log.info("Auto-reset quota for user %s", quota.user_id)
+
+
 async def check_quota(db: AsyncSession, user_id: int, char_count: int) -> Quota:
     """
     Проверяет, достаточно ли символов.
@@ -69,12 +86,7 @@ async def check_quota(db: AsyncSession, user_id: int, char_count: int) -> Quota:
     Автоматически сбрасывает если прошёл месяц.
     """
     quota = await get_or_create_quota(db, user_id)
-
-    # Авто-сброс если прошёл месяц
-    if quota.reset_at and datetime.now(timezone.utc) >= quota.reset_at:
-        quota.chars_used = 0
-        quota.reset_at = _next_reset()
-        log.info("Auto-reset quota for user %s", user_id)
+    _reset_quota_if_needed(quota)
 
     if quota.chars_used + char_count > quota.chars_limit:
         raise QuotaExceededError(
@@ -88,8 +100,17 @@ async def check_quota(db: AsyncSession, user_id: int, char_count: int) -> Quota:
 
 async def deduct_chars(db: AsyncSession, user_id: int, char_count: int) -> Quota:
     """Списывает символы с баланса (вызывать ПОСЛЕ успешного перевода)."""
-    quota = await get_or_create_quota(db, user_id)
-    quota.chars_used = min(quota.chars_used + char_count, quota.chars_limit)
+    quota = await _get_or_create_quota_for_update(db, user_id)
+    _reset_quota_if_needed(quota)
+
+    if quota.chars_used + char_count > quota.chars_limit:
+        raise QuotaExceededError(
+            chars_used=quota.chars_used,
+            chars_limit=quota.chars_limit,
+            reset_at=quota.reset_at,
+        )
+
+    quota.chars_used += char_count
     await db.flush()
     return quota
 

@@ -23,7 +23,7 @@ from core.errors import (
     http_error_handler,
     unhandled_error_handler,
 )
-from db.session import engine, Base
+from db.session import engine
 from services.cache import get_redis, close_redis
 from routers import auth, translate, users, chats, stats, billing, webhook
 
@@ -59,11 +59,6 @@ async def lifespan(app: FastAPI):
     setup_logging()
     log = structlog.get_logger()
     log.info("Starting TransApp API", env=settings.env)
-
-    # Создаём таблицы если их нет (idempotent — не трогает существующие)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    log.info("Database tables created / verified")
 
     # Подключаемся к Redis
     await get_redis()

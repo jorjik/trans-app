@@ -79,7 +79,7 @@ export default function App() {
     };
 
     void bootstrap();
-  }, [setReady, setToken, setUser, uiLang]);
+  }, [setReady, setToken, setUser]);
 
   const meQuery = useQuery({
     queryKey: ['me', token],
