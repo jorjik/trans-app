@@ -40,11 +40,8 @@ export function QuickTranslate() {
     <Card withBorder radius="md" p="md">
       <Stack gap="sm">
         <div>
-          <Title order={4}>{t('qt.title', uiLang)}</Title>
-          <Text size="sm" c="dimmed">
-            {t('qt.desc', uiLang)}
-          </Text>
-        </div>
+<Title order={4}>{t('qt.title', uiLang)}</Title>
+         </div>
 
         <Textarea
           label={t('qt.text_label', uiLang)}

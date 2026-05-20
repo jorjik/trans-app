@@ -66,7 +66,6 @@ export const LOCALES: Record<string, Record<string, string>> = {
     'settings.ui_lang_uk': 'Українська',
     /* QuickTranslate */
     'qt.title': 'Быстрый перевод',
-    'qt.desc': 'Вызывает тот же API, что и бот. Кэшированные запросы не расходуют квоту.',
     'qt.text_label': 'Текст',
     'qt.text_placeholder': 'Введите текст для перевода...',
     'qt.source': 'Исходный',
@@ -160,7 +159,6 @@ export const LOCALES: Record<string, Record<string, string>> = {
     'settings.ui_lang_uk': 'Українська',
     /* QuickTranslate */
     'qt.title': 'Швидкий переклад',
-    'qt.desc': 'Викликає той самий API, що й бот. Кешовані запити не витрачають квоту.',
     'qt.text_label': 'Текст',
     'qt.text_placeholder': 'Введіть текст для перекладу...',
     'qt.source': 'Джерело',
@@ -254,7 +252,6 @@ export const LOCALES: Record<string, Record<string, string>> = {
     'settings.ui_lang_uk': 'Українська',
     /* QuickTranslate */
     'qt.title': 'Quick translate',
-    'qt.desc': 'Calls the same API as the bot. Cached hits do not spend quota.',
     'qt.text_label': 'Text',
     'qt.text_placeholder': 'Type something to translate...',
     'qt.source': 'Source',

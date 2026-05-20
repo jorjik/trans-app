@@ -40,7 +40,7 @@ import { Chats } from './pages/Chats';
 import { Dashboard } from './pages/Dashboard';
 import { Settings } from './pages/Settings';
 import { useStore } from './store/useStore';
-import type { ChatConfig, User } from './types';
+import type { ChatConfig } from './types';
 
 export default function App() {
   const queryClient = useQueryClient();
@@ -55,7 +55,10 @@ export default function App() {
   const setActiveTab = useStore((state) => state.setActiveTab);
   const [navbarOpened, setNavbarOpened] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
-  const [pickerLang, setPickerLang] = useState('en');
+  const [pickerLang, setPickerLang] = useState(() => {
+    const tgLang = window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code?.slice(0, 2);
+    return tgLang && ['en', 'ru', 'uk'].includes(tgLang) ? tgLang : 'en';
+  });
 
   const uiLang = user?.ui_language ?? 'en';
 
@@ -115,6 +118,12 @@ export default function App() {
       setUser(meQuery.data);
     }
   }, [meQuery.data, setUser]);
+
+  useEffect(() => {
+    if (user?.ui_language && ['en', 'ru', 'uk'].includes(user.ui_language)) {
+      setPickerLang(user.ui_language);
+    }
+  }, [user?.ui_language]);
 
   const saveSettingsMutation = useMutation({
     mutationFn: (payload: Parameters<typeof updateMe>[1]) => updateMe(token as string, payload),

@@ -1,4 +1,4 @@
-import { Card, Grid, SimpleGrid, Stack, Text, Title } from '@mantine/core';
+import { Card, Grid, Stack, Text, Title } from '@mantine/core';
 
 import { getLangLabel } from '../api/langs';
 import { QuotaBar } from '../components/QuotaBar';
@@ -30,36 +30,14 @@ export function Dashboard({ user, stats }: DashboardProps) {
 
       <QuickTranslate />
 
-      <SimpleGrid cols={{ base: 1, sm: 3 }}>
-        <Card withBorder radius="md" p="md">
-          <Text size="sm" c="dimmed">
-            {t('dashboard.plan', lang)}
-          </Text>
-          <Title order={4} tt="capitalize">
-            {user.plan}
-          </Title>
-        </Card>
-        <Card withBorder radius="md" p="md">
-          <Text size="sm" c="dimmed">
-            {t('dashboard.remaining', lang)}
-          </Text>
-          <Title order={4}>{user.chars_remaining.toLocaleString()}</Title>
-        </Card>
-        <Card withBorder radius="md" p="md">
-          <Text size="sm" c="dimmed">
-            {t('dashboard.default_lang', lang)}
-          </Text>
-          <Title order={4}>{getLangLabel(user.target_language)}</Title>
-        </Card>
-      </SimpleGrid>
-
       {stats ? (
         <Grid>
-          <Grid.Col span={{ base: 12, md: 8 }}>
-            <StatsChart data={stats.chars_by_day} uiLang={lang} />
-          </Grid.Col>
           <Grid.Col span={{ base: 12, md: 4 }}>
             <Card withBorder radius="md" p="md">
+              <Text size="sm" c="dimmed" mb="xs">
+                {t('dashboard.default_lang', lang)}
+              </Text>
+              <Title order={4} mb="md">{getLangLabel(user.target_language)}</Title>
               <Text fw={600} mb="sm">
                 {t('dashboard.totals', lang)}
               </Text>
@@ -69,8 +47,18 @@ export function Dashboard({ user, stats }: DashboardProps) {
               </Stack>
             </Card>
           </Grid.Col>
+          <Grid.Col span={{ base: 12, md: 8 }}>
+            <StatsChart data={stats.chars_by_day} uiLang={lang} />
+          </Grid.Col>
         </Grid>
-      ) : null}
+      ) : (
+        <Card withBorder radius="md" p="md">
+          <Text size="sm" c="dimmed" mb="xs">
+            {t('dashboard.default_lang', lang)}
+          </Text>
+          <Title order={4}>{getLangLabel(user.target_language)}</Title>
+        </Card>
+      )}
     </Stack>
   );
 }
