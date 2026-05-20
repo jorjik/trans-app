@@ -131,6 +131,7 @@ app.include_router(internal.router)
 @app.get("/health", tags=["system"])
 async def health() -> dict:
     """Проверка работоспособности сервиса."""
+    # deployment-2026-05-20-force-rebuild
     from services.cache import get_redis as _get_redis
     redis_ok = False
     try:
