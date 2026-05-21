@@ -1,8 +1,6 @@
-rootDirectory = "api"
-
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
+dockerfilePath = "api/Dockerfile"
 watchPatterns = ["**/*.py", "requirements.txt", "alembic.ini", "core/**", "models/**", "routers/**", "schemas/**", "services/**", "db/**"]
 
 [deploy]
