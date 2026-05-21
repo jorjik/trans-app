@@ -1,0 +1,12 @@
+rootDirectory = "api"
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+watchPatterns = ["**/*.py", "requirements.txt", "alembic.ini", "core/**", "models/**", "routers/**", "schemas/**", "services/**", "db/**"]
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
