@@ -19,4 +19,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["sh", "-c", "alembic upgrade head 2>/dev/null || (alembic stamp head && alembic upgrade head) && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["/bin/sh", "docker-entrypoint.sh"]
