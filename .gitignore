@@ -1,5 +1,6 @@
 .env
 docs/MONETIZATION.md
+infra/
 
 # Node / Vite (miniapp)
 node_modules/
