@@ -22,6 +22,9 @@ logger = logging.getLogger(__name__)
 router = Router(name="translate")
 MAX_RESULT_LENGTH = settings.max_result_length
 
+# Storage for source text to enable retranslation
+_last_source_text: dict[int, str] = {}
+
 
 
 # ── /tr ────────────────────────────────────────────────────
@@ -315,3 +318,62 @@ async def _send_quota_exceeded(message: Message, user: UserData) -> None:
         f"{t('quota_exceeded_options', user.ui_language)}"
     )
     await message.reply(text, reply_markup=upgrade_kb(user.ui_language), parse_mode="HTML")
+
+
+# ── Forwarded messages: auto-translate ─────────────────────
+
+@router.message(F.chat.type == "private", F.forward_date.is_not(None))
+async def handle_forwarded(message: Message) -> None:
+    """
+    Переводит пересланное боту сообщение на язык пользователя по умолчанию.
+    """
+    user = await get_user(message.from_user.id)
+
+    if user.is_quota_exceeded:
+        await _send_quota_exceeded(message, user)
+        return
+
+    source_text = _extract_text(message)
+    if not source_text:
+        await message.reply(t("tr_no_text", user.ui_language))
+        return
+
+    if len(source_text) > user.chars_remaining:
+        await _send_quota_exceeded(message, user)
+        return
+
+    target_lang = user.target_language
+    _last_source_text[message.from_user.id] = source_text
+    await message.bot.send_chat_action(message.chat.id, "typing")
+
+    try:
+        result = await translate(source_text, target_lang)
+    except ValueError as e:
+        await message.reply(t("tr_error_value", user.ui_language, error=e))
+        return
+    except RuntimeError:
+        await message.reply(t("tr_error_runtime", user.ui_language))
+        return
+
+    if not result.cached:
+        await deduct_chars(message.from_user.id, result.char_count)
+        updated_user = await get_user(message.from_user.id)
+    else:
+        updated_user = user
+
+    flag = get_lang_flag(result.target_lang)
+    lang_name = get_lang_name(result.target_lang)
+    cache_note = t("tr_result_cache", user.ui_language) if result.cached else ""
+
+    header = t("tr_result_header", user.ui_language, flag=flag, lang=lang_name, sender="", cache_note=cache_note)
+    footer = t("tr_result_footer", user.ui_language, chars=result.char_count, remaining=updated_user.chars_remaining)
+
+    chunks = _split_message(result.translated_text, MAX_RESULT_LENGTH - len(header))
+    for i, chunk in enumerate(chunks):
+        chunk_footer = footer if i == len(chunks) - 1 else ""
+        text = header + chunk + chunk_footer if i == 0 else chunk + chunk_footer
+        await message.answer(
+            text,
+            reply_markup=translate_result_kb(result.source_lang, result.target_lang, source_text, user.ui_language) if i == len(chunks) - 1 else None,
+            parse_mode="HTML",
+        )

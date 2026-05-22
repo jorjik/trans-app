@@ -12,6 +12,7 @@ from core.config import settings
 from db.session import get_db
 from models import User
 from services.quota import get_or_create_quota
+from core.security import hash_telegram_id
 
 log = logging.getLogger(__name__)
 
@@ -34,14 +35,7 @@ async def sync_ui_lang(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Синхронизирует ui_language из бота в БД API."""
-    result = await db.execute(
-        select(User).where(User.telegram_id == body.telegram_id)
-    )
-    user = result.scalar_one_or_none()
-
-    if not user:
-        log.warning("sync-ui-lang: user not found telegram_id=%s", body.telegram_id)
-        return {"status": "not_found"}
+    user = await _get_or_create_user(db, body.telegram_id)
 
     if body.ui_language not in ("en", "ru", "uk"):
         log.warning("sync-ui-lang: invalid language %s", body.ui_language)
@@ -82,6 +76,20 @@ class UpdateSettingsRequest(BaseModel):
     favorite_langs: Optional[list[str]] = None
 
 
+async def _get_or_create_user(db: AsyncSession, telegram_id: int) -> User:
+    result = await db.execute(select(User).where(User.telegram_id == telegram_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        user = User(
+            telegram_id=telegram_id,
+            telegram_id_hash=hash_telegram_id(telegram_id),
+        )
+        db.add(user)
+        await db.flush()
+        log.info("auto-created user telegram_id=%s id=%s", telegram_id, user.id)
+    return user
+
+
 @router.post(
     "/user/settings",
     dependencies=[Depends(verify_bot_secret)],
@@ -92,13 +100,7 @@ async def get_user_settings(
     db: AsyncSession = Depends(get_db),
 ) -> UserSettingsResponse:
     """Возвращает настройки пользователя по telegram_id для бота."""
-    result = await db.execute(
-        select(User).where(User.telegram_id == body.telegram_id)
-    )
-    user = result.scalar_one_or_none()
-
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = await _get_or_create_user(db, body.telegram_id)
 
     quota = await get_or_create_quota(db, user.id)
 
@@ -124,13 +126,7 @@ async def deduct_user_chars(
     db: AsyncSession = Depends(get_db),
 ) -> UserSettingsResponse:
     """Списывает символы пользователя (вызов из бота после перевода)."""
-    result = await db.execute(
-        select(User).where(User.telegram_id == body.telegram_id)
-    )
-    user = result.scalar_one_or_none()
-
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = await _get_or_create_user(db, body.telegram_id)
 
     from services.quota import deduct_chars as quota_deduct
     quota = await quota_deduct(db, user.id, body.char_count)
@@ -157,13 +153,7 @@ async def update_user_settings(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Обновляет настройки пользователя из бота."""
-    result = await db.execute(
-        select(User).where(User.telegram_id == body.telegram_id)
-    )
-    user = result.scalar_one_or_none()
-
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = await _get_or_create_user(db, body.telegram_id)
 
     if body.target_language is not None:
         user.target_language = body.target_language
