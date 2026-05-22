@@ -1,0 +1,80 @@
+#cloud-config
+# Cloud-init script for OCI Compute VM (Ubuntu 22.04 / 24.04)
+# Auto-installs Docker, Docker Compose, and sets up firewall
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg
+  - lsb-release
+  - software-properties-common
+  - ufw
+  - git
+  - unattended-upgrades
+
+write_files:
+  - path: /etc/docker/daemon.json
+    content: |
+      {
+        "log-driver": "json-file",
+        "log-opts": {
+          "max-size": "10m",
+          "max-file": "3"
+        },
+        "live-restore": true
+      }
+
+  - path: /etc/apt/apt.conf.d/50unattended-upgrades
+    content: |
+      Unattended-Upgrade::Allowed-Origins {
+        "${distro_id}:${distro_codename}-security";
+      };
+      Unattended-Upgrade::Automatic-Reboot "false";
+      Unattended-Upgrade::Automatic-Reboot-Time "02:00";
+
+runcmd:
+  # Install Docker
+  - curl -fsSL https://get.docker.com | sh
+  - systemctl enable docker
+  - systemctl start docker
+
+  # Add ubuntu user to docker group
+  - usermod -aG docker ubuntu
+
+  # Install Docker Compose plugin
+  - apt-get install -y docker-compose-plugin
+
+  # Configure firewall
+  - ufw default deny incoming
+  - ufw default allow outgoing
+
+  # --- DISABLE SSH FIREWALL RULE FIRST ---
+  # OCI blocks ports via Security Lists anyway,
+  # adding UFW SSH rule can cause lockout if cloud-init fails.
+  # Uncomment after verifying deployment:
+  - ufw allow 22/tcp
+
+  # Allow app ports
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw allow 8000/tcp
+  - ufw allow 3000/tcp
+  - echo "y" | ufw enable
+
+  # Disable swap on OCI boot volume (improves IO)
+  - swapoff -a
+  - sed -i '/swap/d' /etc/fstab
+
+  # Create app directory
+  - mkdir -p /opt/trans-app
+  - chown ubuntu:ubuntu /opt/trans-app
+
+  # Clone repo (replace with your actual repo URL in the OCI console)
+  # Uncomment and set in OCI Console → Advanced Options → Paste cloud-init:
+  # - su - ubuntu -c "git clone https://github.com/jorjik/trans-app.git /opt/trans-app"
+
+final_message: "OCI TransApp VM ready. Docker + Compose installed. SSH with: ssh ubuntu@<public-ip>"
