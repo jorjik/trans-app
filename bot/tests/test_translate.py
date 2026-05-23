@@ -443,7 +443,185 @@ class TestCmdTo:
         msg.bot.send_chat_action.assert_not_called()
 
 
+class TestExtractText:
+    """Tests for _extract_text helper."""
+
+    def test_extract_text_from_text(self):
+        from handlers.translate import _extract_text
+        msg = make_message("Hello world")
+        result = _extract_text(msg)
+        assert result == "Hello world"
+
+    def test_extract_text_from_caption(self):
+        from handlers.translate import _extract_text
+        msg = make_message(text=None)
+        msg.text = None
+        msg.caption = "Photo caption"
+        result = _extract_text(msg)
+        assert result == "Photo caption"
+
+    def test_extract_text_none(self):
+        from handlers.translate import _extract_text
+        msg = make_message(text=None)
+        msg.text = None
+        msg.caption = None
+        result = _extract_text(msg)
+        assert result is None
+
+
+class TestSplitMessage:
+    """Tests for _split_message helper."""
+
+    def test_split_short_message(self):
+        from handlers.translate import _split_message
+        result = _split_message("Hello world", 100)
+        assert result == ["Hello world"]
+
+    def test_split_long_message(self):
+        from handlers.translate import _split_message
+        text = "Hello world. " * 100
+        result = _split_message(text, 200)
+        assert len(result) > 1
+        # Each chunk should be <= max_len
+        for chunk in result:
+            assert len(chunk) <= 200
+
+    def test_split_preserves_words(self):
+        from handlers.translate import _split_message
+        # Should split at newline or space, not in the middle of a word
+        # The split strips leading whitespace from remaining text via .lstrip()
+        text = "AAA " + "B" * 100 + " CCC"
+        result = _split_message(text, 50)
+        # The space after AAA is consumed by lstrip(), so first chunk is "AAA"
+        assert result[0] == "AAA"
+        # The second chunk should start with all the B's
+        assert result[1].startswith("B")
+
+    def test_split_exact_length(self):
+        from handlers.translate import _split_message
+        text = "A" * 50
+        result = _split_message(text, 50)
+        assert result == ["A" * 50]
+
+    def test_split_empty_text(self):
+        from handlers.translate import _split_message
+        result = _split_message("", 100)
+        assert result == [""]
+
+
 class TestRetranslateFlow:
     """Tests for cb_retranslate and cb_retranslate_to handlers."""
 
+    @pytest.mark.asyncio
+    async def test_cb_retranslate_shows_popular_langs(self, monkeypatch, patch_settings):
+        from handlers.translate import cb_retranslate
 
+        async def fake_get_user(tg_id):
+            return FakeUserData(telegram_id=123, ui_language="en")
+        monkeypatch.setattr("handlers.translate.get_user", fake_get_user)
+
+        cb = make_callback("retranslate:en", from_id=123)
+        await cb_retranslate(cb)
+
+        cb.message.edit_text.assert_called_once()
+        cb.answer.assert_called_once()
+        reply_markup = cb.message.edit_text.call_args[1].get("reply_markup")
+        assert reply_markup is not None
+
+    @pytest.mark.asyncio
+    async def test_cb_retranslate_to_no_source(self, monkeypatch, patch_settings):
+        from handlers.translate import cb_retranslate_to, _last_source_text
+
+        _last_source_text.pop(123, None)
+
+        async def fake_get_user(tg_id):
+            return FakeUserData(telegram_id=123, ui_language="en")
+        monkeypatch.setattr("handlers.translate.get_user", fake_get_user)
+
+        cb = make_callback("retranslate_to:de", from_id=123)
+        await cb_retranslate_to(cb)
+
+        cb.answer.assert_called_once()
+        cb.answer.call_args[1].get("show_alert", False) is True
+
+    @pytest.mark.asyncio
+    async def test_cb_retranslate_to_quota_exceeded(self, monkeypatch, patch_settings):
+        from handlers.translate import cb_retranslate_to, _last_source_text
+
+        _last_source_text[123] = "Hello world"
+
+        async def fake_get_user(tg_id):
+            return FakeUserData(telegram_id=123, ui_language="en", chars_used=50000, chars_limit=50000)
+        monkeypatch.setattr("handlers.translate.get_user", fake_get_user)
+
+        cb = make_callback("retranslate_to:de", from_id=123)
+        await cb_retranslate_to(cb)
+
+        cb.message.edit_text.assert_called_once()
+        call_text = cb.message.edit_text.call_args[0][0]
+        assert "quota" in call_text.lower() or "limit" in call_text.lower()
+
+    @pytest.mark.asyncio
+    async def test_cb_retranslate_to_success(self, monkeypatch, patch_settings):
+        from handlers.translate import cb_retranslate_to, _last_source_text
+
+        _last_source_text[123] = "Hello world"
+
+        class FakeResult:
+            translated_text = "Hallo Welt"
+            source_lang = "en"
+            target_lang = "de"
+            provider = "google"
+            cached = False
+            char_count = 11
+
+        async def fake_get_user(tg_id):
+            return FakeUserData(telegram_id=123, ui_language="en", target_language="de", chars_remaining=49000)
+        async def fake_translate(text, lang):
+            return FakeResult()
+        async def fake_deduct(tg_id, count):
+            return FakeUserData(telegram_id=123, chars_used=11, chars_remaining=48989)
+
+        monkeypatch.setattr("handlers.translate.get_user", fake_get_user)
+        monkeypatch.setattr("handlers.translate.translate", fake_translate)
+        monkeypatch.setattr("handlers.translate.deduct_chars", fake_deduct)
+
+        cb = make_callback("retranslate_to:de", from_id=123)
+        await cb_retranslate_to(cb)
+
+        cb.message.edit_text.assert_called_once()
+        call_text = cb.message.edit_text.call_args[0][0]
+        assert "Hallo Welt" in call_text
+
+    @pytest.mark.asyncio
+    async def test_cb_retranslate_to_cached(self, monkeypatch, patch_settings):
+        from handlers.translate import cb_retranslate_to, _last_source_text
+
+        _last_source_text[123] = "Hello"
+
+        class FakeResult:
+            translated_text = "Hola"
+            source_lang = "en"
+            target_lang = "es"
+            provider = "google"
+            cached = True
+            char_count = 5
+
+        deduct_called = []
+        async def fake_get_user(tg_id):
+            return FakeUserData(telegram_id=123, ui_language="en", chars_remaining=49000)
+        async def fake_translate(text, lang):
+            return FakeResult()
+        async def fake_deduct(tg_id, count):
+            deduct_called.append(True)
+            return None
+
+        monkeypatch.setattr("handlers.translate.get_user", fake_get_user)
+        monkeypatch.setattr("handlers.translate.translate", fake_translate)
+        monkeypatch.setattr("handlers.translate.deduct_chars", fake_deduct)
+
+        cb = make_callback("retranslate_to:es", from_id=123)
+        await cb_retranslate_to(cb)
+
+        assert len(deduct_called) == 0  # Should NOT deduct for cached
+        cb.message.edit_text.assert_called_once()
