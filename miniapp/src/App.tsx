@@ -1,13 +1,10 @@
 import {
   AppShell,
-  Avatar,
-  Burger,
   Button,
   Card,
   Center,
   Group,
   Loader,
-  NavLink,
   Notification,
   Stack,
   Text,
@@ -34,6 +31,7 @@ import {
   updateChat,
   updateMe,
 } from './api/client';
+import { BottomNav } from './components/BottomNav';
 import { t } from './i18n';
 import { Billing } from './pages/Billing';
 import { Chats } from './pages/Chats';
@@ -53,7 +51,7 @@ export default function App() {
   const setUser = useStore((state) => state.setUser);
   const setReady = useStore((state) => state.setReady);
   const setActiveTab = useStore((state) => state.setActiveTab);
-  const [navbarOpened, setNavbarOpened] = useState(false);
+
   const [isNewUser, setIsNewUser] = useState(false);
   const [pickerLang, setPickerLang] = useState(() => {
     const tgLang = window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code?.slice(0, 2);
@@ -214,6 +212,10 @@ export default function App() {
     [uiLang],
   );
 
+  const handleNavClick = (key: 'dashboard' | 'chats' | 'billing' | 'settings') => {
+    setActiveTab(key);
+  };
+
   const handleLangConfirm = async () => {
     if (!token) return;
     try {
@@ -347,63 +349,23 @@ export default function App() {
     }
   })();
 
-  const handleNavClick = (key: 'dashboard' | 'chats' | 'billing' | 'settings') => {
-    setActiveTab(key);
-    setNavbarOpened(false);
-  };
-
   return (
     <AppShell
       padding="md"
-      header={{ height: 56 }}
-      navbar={{
-        width: 280,
-        breakpoint: 'sm',
-        collapsed: { mobile: !navbarOpened },
-      }}
+      header={{ height: 52 }}
+      footer={{ height: 60 }}
     >
       <AppShell.Header>
-        <Group h="100%" px="md">
-          <Burger
-            opened={navbarOpened}
-            onClick={() => setNavbarOpened((o) => !o)}
-            size="sm"
-          />
+        <Group h="100%" px="md" justify="space-between">
           <Text fw={600}>TransApp</Text>
-        </Group>
-      </AppShell.Header>
-      <AppShell.Navbar p="sm">
-        <Stack justify="space-between" h="100%">
-          <Stack gap="sm">
-            <Group>
-              <Avatar radius="xl">T</Avatar>
-              <div>
-                <Text fw={600}>TransApp</Text>
-                <Text size="xs" c="dimmed">
-                  @{user.username ?? 'telegram_user'}
-                </Text>
-              </div>
-            </Group>
-
-            {navItems.map((item) => (
-              <NavLink
-                key={item.key}
-                active={activeTab === item.key}
-                label={item.label}
-                leftSection={<item.icon size={18} />}
-                onClick={() => handleNavClick(item.key)}
-              />
-            ))}
-          </Stack>
-
           <Text size="xs" c="dimmed">
             {t('nav.plan_remaining', user.ui_language, {
               plan: user.plan,
               chars: user.chars_remaining.toLocaleString(),
             })}
           </Text>
-        </Stack>
-      </AppShell.Navbar>
+        </Group>
+      </AppShell.Header>
       <AppShell.Main>
         <Stack gap="md">
           {error ? (
@@ -414,6 +376,9 @@ export default function App() {
           {content}
         </Stack>
       </AppShell.Main>
+      <AppShell.Footer>
+        <BottomNav items={navItems} active={activeTab} onTabClick={handleNavClick} />
+      </AppShell.Footer>
     </AppShell>
   );
 }
