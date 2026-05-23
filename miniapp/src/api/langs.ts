@@ -33,6 +33,10 @@ export const LANGUAGE_OPTIONS = Object.keys(LANG_NAMES).map((code) => ({
   label: `${LANG_FLAGS[code] ?? '🌐'} ${LANG_NAMES[code]}`,
 }));
 
-export function getLangLabel(code: string) {
-  return `${LANG_FLAGS[code] ?? '🌐'} ${LANG_NAMES[code] ?? code.toUpperCase()}`;
+import { LANG_NAMES_LOCALIZED } from '../i18n';
+
+export function getLangLabel(code: string, locale?: string) {
+  const localizedNames = locale ? LANG_NAMES_LOCALIZED[locale] : undefined;
+  const name = localizedNames?.[code] ?? LANG_NAMES[code] ?? code.toUpperCase();
+  return `${LANG_FLAGS[code] ?? '🌐'} ${name}`;
 }

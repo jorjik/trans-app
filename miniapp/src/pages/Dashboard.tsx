@@ -37,7 +37,7 @@ export function Dashboard({ user, stats }: DashboardProps) {
               <Text size="sm" c="dimmed" mb="xs">
                 {t('dashboard.default_lang', lang)}
               </Text>
-              <Title order={4} mb="md">{getLangLabel(user.target_language)}</Title>
+              <Title order={4} mb="md">{getLangLabel(user.target_language, lang)}</Title>
               <Text fw={600} mb="sm">
                 {t('dashboard.totals', lang)}
               </Text>
@@ -56,7 +56,7 @@ export function Dashboard({ user, stats }: DashboardProps) {
           <Text size="sm" c="dimmed" mb="xs">
             {t('dashboard.default_lang', lang)}
           </Text>
-          <Title order={4}>{getLangLabel(user.target_language)}</Title>
+          <Title order={4}>{getLangLabel(user.target_language, lang)}</Title>
         </Card>
       )}
     </Stack>

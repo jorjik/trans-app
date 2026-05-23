@@ -99,7 +99,7 @@ export function Chats({ chats, limitReached, onCreate, onToggle, onDelete, isBus
                   <Table.Tr key={chat.id}>
                     <Table.Td>{chat.chat_title ?? `@${chat.chat_username ?? 'unknown'}`}</Table.Td>
                     <Table.Td>
-                      {getLangLabel(chat.source_lang)} {'->'} {getLangLabel(chat.target_lang)}
+                      {getLangLabel(chat.source_lang, uiLang)} {'->'} {getLangLabel(chat.target_lang, uiLang)}
                     </Table.Td>
                     <Table.Td>
                       <Switch checked={chat.is_active} onChange={() => onToggle(chat)} />
