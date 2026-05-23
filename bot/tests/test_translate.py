@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch, call
-from datetime import datetime, timezone
+from datetime import datetime
 
 from aiogram.types import Message, User, Chat, CallbackQuery
 
@@ -36,7 +36,8 @@ class FakeUserData:
 
 
 def make_message(text="Hello world", from_id=123, chat_type="private",
-                 forward_date=None) -> Message:
+                 forward_date=None, reply_to_message=None, first_name="TestUser",
+                 language_code="ru") -> Message:
     """Create a mock aiogram Message."""
     msg = MagicMock(spec=Message)
     msg.text = text
@@ -46,13 +47,16 @@ def make_message(text="Hello world", from_id=123, chat_type="private",
     msg.chat.id = from_id
     msg.from_user = MagicMock(spec=User)
     msg.from_user.id = from_id
-    msg.from_user.first_name = "TestUser"
-    msg.from_user.language_code = "ru"
+    msg.from_user.first_name = first_name
+    msg.from_user.language_code = language_code
     msg.forward_date = forward_date
-    msg.reply_to_message = None
+    msg.reply_to_message = reply_to_message
     msg.bot = AsyncMock()
     msg.bot.send_chat_action = AsyncMock()
     msg.bot.get_me = AsyncMock()
+    me = MagicMock()
+    me.username = "TransAppBot"
+    msg.bot.get_me.return_value = me
     msg.reply = AsyncMock()
     msg.answer = AsyncMock()
     return msg
@@ -71,6 +75,10 @@ def make_callback(data: str, from_id=123) -> CallbackQuery:
     cb.message.edit_text = AsyncMock()
     cb.bot = AsyncMock()
     cb.bot.send_chat_action = AsyncMock()
+    cb.bot.get_me = AsyncMock()
+    me = MagicMock()
+    me.username = "TransAppBot"
+    cb.bot.get_me.return_value = me
     cb.answer = AsyncMock()
     return cb
 
@@ -200,33 +208,16 @@ class TestForwardedMessageHandler:
         assert last_handler.callback == handle_forwarded  # type: ignore
 
 
-class TestRetranslateFlow:
-    """Tests for cb_retranslate and cb_retranslate_to handlers."""
+class TestCmdTr:
+    """Tests for /tr command."""
 
     @pytest.mark.asyncio
-    async def test_retranslate_shows_language_selector(self, monkeypatch):
-        """Кнопка 'другой язык' показывает список языков."""
-        from handlers.translate import cb_retranslate, _last_source_text
+    async def test_cmd_tr_with_reply(self, monkeypatch, patch_settings):
+        """/tr with reply should translate the replied message."""
+        from handlers.translate import cmd_tr
 
-        user = FakeUserData(123)
-        async def fake_get_user(tg_id):
-            return user
-        monkeypatch.setattr("handlers.translate.get_user", fake_get_user)
-
-        cb = make_callback("retranslate:en")
-        await cb_retranslate(cb)
-
-        cb.message.edit_text.assert_called_once()
-        cb.answer.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_retranslate_to_translates(self, monkeypatch):
-        """Выбор языка в ретранслейте переводит сохранённый текст."""
-        from handlers.translate import cb_retranslate_to, _last_source_text
-
-        user = FakeUserData(123)
-        result = FakeTranslateResult("Bonjour", "en", "fr", cached=False)
-        _last_source_text[123] = "Hello"
+        user = FakeUserData(123, target_language="es")
+        result = FakeTranslateResult("Hola mundo", "en", "es", cached=False)
 
         async def fake_get_user(tg_id):
             return user
@@ -239,48 +230,31 @@ class TestRetranslateFlow:
         monkeypatch.setattr("handlers.translate.translate", fake_translate)
         monkeypatch.setattr("handlers.translate.deduct_chars", fake_deduct)
 
-        cb = make_callback("retranslate_to:fr")
-        await cb_retranslate_to(cb)
+        # Create a reply message
+        replied = make_message("Hello world", from_id=456)
+        msg = make_message("/tr", from_id=123, reply_to_message=replied)
+        msg.text = "/tr"
 
-        cb.bot.send_chat_action.assert_called_once()
-        cb.message.edit_text.assert_called_once()
+        await cmd_tr(msg)
 
-    @pytest.mark.asyncio
-    async def test_retranslate_to_no_source_text(self, monkeypatch):
-        """Ретранслейт без сохранённого текста — показывает ошибку."""
-        from handlers.translate import cb_retranslate_to, _last_source_text
-
-        user = FakeUserData(123)
-        _last_source_text.clear()
-
-        async def fake_get_user(tg_id):
-            return user
-        monkeypatch.setattr("handlers.translate.get_user", fake_get_user)
-
-        cb = make_callback("retranslate_to:fr")
-        await cb_retranslate_to(cb)
-
-        cb.answer.assert_called_once()
-        # show_alert=True for the error
-        assert cb.answer.call_args[1].get("show_alert") is True
+        msg.bot.send_chat_action.assert_called_once()
+        msg.answer.assert_called()
+        call_text = msg.answer.call_args[0][0]
+        assert "Hola mundo" in call_text
 
     @pytest.mark.asyncio
-    async def test_full_forward_then_retranslate_flow(self, monkeypatch):
-        """Полный flow: пересылка → перевод → ретранслейт на другой язык."""
-        from handlers.translate import (
-            handle_forwarded, cb_retranslate, cb_retranslate_to, _last_source_text
-        )
+    async def test_cmd_tr_with_reply_and_lang(self, monkeypatch, patch_settings):
+        """/tr de with reply should translate to German."""
+        from handlers.translate import cmd_tr
 
-        user = FakeUserData(123, target_language="es")
-        result1 = FakeTranslateResult("Hola", "en", "es", cached=False)
-        result2 = FakeTranslateResult("Bonjour", "en", "fr", cached=False)
+        user = FakeUserData(123, target_language="es")  # default is es
+        result = FakeTranslateResult("Hallo Welt", "en", "de", cached=False)
 
         async def fake_get_user(tg_id):
             return user
         async def fake_translate(text, lang):
-            if lang == "es":
-                return result1
-            return result2
+            assert lang == "de"  # Should use the argument, not default
+            return result
         async def fake_deduct(tg_id, count):
             return user
 
@@ -288,25 +262,188 @@ class TestRetranslateFlow:
         monkeypatch.setattr("handlers.translate.translate", fake_translate)
         monkeypatch.setattr("handlers.translate.deduct_chars", fake_deduct)
 
-        # Step 1: Forward a message
-        msg = make_message("Hello", from_id=123, forward_date=datetime(2026, 1, 1))
-        await handle_forwarded(msg)
+        replied = make_message("Hello world", from_id=456)
+        msg = make_message("/tr de", from_id=123, reply_to_message=replied)
+        msg.text = "/tr de"
 
-        assert _last_source_text[123] == "Hello"
+        await cmd_tr(msg)
+
         msg.answer.assert_called()
-        translated_call = msg.answer.call_args[0][0]
-        assert "Hola" in translated_call
+        call_text = msg.answer.call_args[0][0]
+        assert "Hallo Welt" in call_text
 
-        # Step 2: Click "retranslate" button
-        cb1 = make_callback("retranslate:en")
-        await cb_retranslate(cb1)
+    @pytest.mark.asyncio
+    async def test_cmd_tr_no_reply_shows_error(self, monkeypatch, patch_settings):
+        """/tr without reply should show usage message."""
+        from handlers.translate import cmd_tr
 
-        cb1.message.edit_text.assert_called_once()
+        user = FakeUserData(123)
+        async def fake_get_user(tg_id):
+            return user
+        monkeypatch.setattr("handlers.translate.get_user", fake_get_user)
 
-        # Step 3: Select new language
-        cb2 = make_callback("retranslate_to:fr")
-        await cb_retranslate_to(cb2)
+        msg = make_message("/tr", from_id=123, reply_to_message=None)
+        msg.text = "/tr"
 
-        cb2.message.edit_text.assert_called_once()
-        translated_call2 = cb2.message.edit_text.call_args[0][0]
-        assert "Bonjour" in translated_call2
+        await cmd_tr(msg)
+
+        msg.reply.assert_called_once()
+        msg.bot.send_chat_action.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_cmd_tr_unknown_lang(self, monkeypatch, patch_settings):
+        """/tr with unknown language code should show error."""
+        from handlers.translate import cmd_tr
+
+        user = FakeUserData(123)
+        async def fake_get_user(tg_id):
+            return user
+        monkeypatch.setattr("handlers.translate.get_user", fake_get_user)
+
+        replied = make_message("Hello", from_id=456)
+        msg = make_message("/tr xyz", from_id=123, reply_to_message=replied)
+        msg.text = "/tr xyz"
+
+        await cmd_tr(msg)
+
+        msg.reply.assert_called_once()
+        msg.bot.send_chat_action.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_cmd_tr_quota_exceeded(self, monkeypatch, patch_settings):
+        """/tr when quota exceeded should show quota message."""
+        from handlers.translate import cmd_tr
+
+        user = FakeUserData(123, chars_used=50000, chars_limit=50000)
+        async def fake_get_user(tg_id):
+            return user
+        monkeypatch.setattr("handlers.translate.get_user", fake_get_user)
+
+        replied = make_message("Hello", from_id=456)
+        msg = make_message("/tr", from_id=123, reply_to_message=replied)
+        msg.text = "/tr"
+
+        await cmd_tr(msg)
+
+        msg.reply.assert_called_once()
+        msg.bot.send_chat_action.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_cmd_tr_cached_result(self, monkeypatch, patch_settings):
+        """Cached translation should not deduct chars."""
+        from handlers.translate import cmd_tr
+
+        user = FakeUserData(123, target_language="es")
+        result = FakeTranslateResult("Hola", "en", "es", cached=True)
+
+        deduct_called = []
+        async def fake_get_user(tg_id):
+            return user
+        async def fake_translate(text, lang):
+            return result
+        async def fake_deduct(tg_id, count):
+            deduct_called.append(True)
+            return user
+
+        monkeypatch.setattr("handlers.translate.get_user", fake_get_user)
+        monkeypatch.setattr("handlers.translate.translate", fake_translate)
+        monkeypatch.setattr("handlers.translate.deduct_chars", fake_deduct)
+
+        replied = make_message("Hello", from_id=456)
+        msg = make_message("/tr", from_id=123, reply_to_message=replied)
+        msg.text = "/tr"
+
+        await cmd_tr(msg)
+        assert len(deduct_called) == 0  # Should NOT deduct for cached
+
+
+class TestCmdTo:
+    """Tests for /to command."""
+
+    @pytest.mark.asyncio
+    async def test_cmd_to_basic(self, monkeypatch, patch_settings):
+        """/to en text should translate the text."""
+        from handlers.translate import cmd_to
+
+        user = FakeUserData(123)
+        result = FakeTranslateResult("Hello, how are you?", "ru", "en", cached=False)
+
+        async def fake_get_user(tg_id):
+            return user
+        async def fake_translate(text, lang):
+            return result
+        async def fake_deduct(tg_id, count):
+            return user
+
+        monkeypatch.setattr("handlers.translate.get_user", fake_get_user)
+        monkeypatch.setattr("handlers.translate.translate", fake_translate)
+        monkeypatch.setattr("handlers.translate.deduct_chars", fake_deduct)
+
+        msg = make_message("/to en Привет, как дела?", from_id=123)
+        msg.text = "/to en Привет, как дела?"
+
+        await cmd_to(msg)
+
+        msg.bot.send_chat_action.assert_called_once()
+        msg.reply.assert_called_once()
+        call_text = msg.reply.call_args[0][0]
+        assert "Hello, how are you?" in call_text
+
+    @pytest.mark.asyncio
+    async def test_cmd_to_no_text(self, monkeypatch, patch_settings):
+        """/to without text should show usage."""
+        from handlers.translate import cmd_to
+
+        user = FakeUserData(123)
+        async def fake_get_user(tg_id):
+            return user
+        monkeypatch.setattr("handlers.translate.get_user", fake_get_user)
+
+        msg = make_message("/to es", from_id=123)
+        msg.text = "/to es"
+
+        await cmd_to(msg)
+
+        msg.reply.assert_called_once()
+        msg.bot.send_chat_action.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_cmd_to_unknown_lang(self, monkeypatch, patch_settings):
+        """/to with unknown language code should show usage."""
+        from handlers.translate import cmd_to
+
+        user = FakeUserData(123)
+        async def fake_get_user(tg_id):
+            return user
+        monkeypatch.setattr("handlers.translate.get_user", fake_get_user)
+
+        msg = make_message("/to xyz some text", from_id=123)
+        msg.text = "/to xyz some text"
+
+        await cmd_to(msg)
+
+        msg.reply.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_cmd_to_quota_exceeded(self, monkeypatch, patch_settings):
+        """/to when quota exceeded should show error."""
+        from handlers.translate import cmd_to
+
+        user = FakeUserData(123, chars_used=50000, chars_limit=50000)
+        async def fake_get_user(tg_id):
+            return user
+        monkeypatch.setattr("handlers.translate.get_user", fake_get_user)
+
+        msg = make_message("/to en Hello world", from_id=123)
+        msg.text = "/to en Hello world"
+
+        await cmd_to(msg)
+
+        msg.reply.assert_called_once()
+        msg.bot.send_chat_action.assert_not_called()
+
+
+class TestRetranslateFlow:
+    """Tests for cb_retranslate and cb_retranslate_to handlers."""
+
+

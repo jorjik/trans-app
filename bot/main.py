@@ -11,18 +11,41 @@ Webhook настраивается отдельно (infra/nginx) для product
 import asyncio
 import logging
 import sys
+from typing import Any, Callable, Awaitable
 
 import structlog
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, BaseMiddleware
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import TelegramObject, CallbackQuery
 
 from config import settings
 from handlers import start, translate, inline, errors, billing
 from middlewares.throttle import ThrottleMiddleware
 from services.cache import close_redis
 from services.api_client import close_session
+
+
+# Временный middleware для диагностики callback_query
+log_debug = logging.getLogger("callback_debug")
+
+
+class CallbackDebugMiddleware(BaseMiddleware):
+    async def __call__(
+        self,
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
+        event: TelegramObject,
+        data: dict[str, Any],
+    ) -> Any:
+        if isinstance(event, CallbackQuery):
+            log_debug.warning(
+                "CALLBACK DEBUG: user=%s data=%s message_id=%s",
+                event.from_user.id,
+                event.data,
+                event.message.message_id if event.message else None,
+            )
+        return await handler(event, data)
 
 
 def setup_logging() -> None:
@@ -68,6 +91,7 @@ async def main() -> None:
     # Middleware
     dp.message.middleware(ThrottleMiddleware())
     dp.callback_query.middleware(ThrottleMiddleware())
+    dp.callback_query.middleware(CallbackDebugMiddleware())
 
     # Роутеры (порядок важен!)
     dp.include_router(errors.router)

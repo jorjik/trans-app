@@ -1,16 +1,18 @@
 import { Text, UnstyledButton } from '@mantine/core';
 import type { TablerIcon } from '@tabler/icons-react';
 
+type NavItemKey = 'dashboard' | 'chats' | 'billing' | 'settings';
+
 interface NavItem {
-  key: string;
+  key: NavItemKey;
   label: string;
   icon: TablerIcon;
 }
 
 interface BottomNavProps {
   items: readonly NavItem[];
-  active: string;
-  onTabClick: (key: string) => void;
+  active: NavItemKey;
+  onTabClick: (key: NavItemKey) => void;
 }
 
 export function BottomNav({ items, active, onTabClick }: BottomNavProps) {

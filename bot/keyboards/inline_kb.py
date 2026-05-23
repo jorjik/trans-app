@@ -1,15 +1,38 @@
-"""Inline-клавиатуры и кнопки бота — с локализацией."""
+"""Клавиатуры и кнопки бота — с локализацией."""
 
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
+from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 
 from utils.languages import get_lang_flag, get_lang_name
 from utils.i18n import t
 from config import settings
 
 
+def main_menu_reply_kb(mini_app_url: str | None = None, ui_lang: str = "ru") -> ReplyKeyboardMarkup:
+    """Главное меню в нижней клавиатуре Telegram (reply keyboard)."""
+    builder = ReplyKeyboardBuilder()
+
+    if mini_app_url:
+        builder.button(
+            text=t("btn_open_mini_app", ui_lang),
+            web_app=WebAppInfo(url=mini_app_url),
+        )
+
+    builder.button(text=t("btn_how_to_use", ui_lang))
+    builder.button(text=t("btn_change_lang", ui_lang))
+    builder.button(text=t("btn_my_balance", ui_lang))
+
+    # 2 кнопки в ряду: Mini App (если есть) + 3 остальные в 2 ряда
+    if mini_app_url:
+        builder.adjust(1, 2, 1)
+    else:
+        builder.adjust(2, 1)
+
+    return builder.as_markup(resize_keyboard=True)
+
+
 def main_menu_kb(mini_app_url: str | None = None, ui_lang: str = "ru") -> InlineKeyboardMarkup:
-    """Главное меню в /start."""
+    """Главное меню как inline-клавиатура (запасной вариант)."""
     builder = InlineKeyboardBuilder()
 
     if mini_app_url:
@@ -101,13 +124,10 @@ def ui_lang_kb(current_ui_lang: str = "ru") -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for code, flag, name in [
         ("en", "🇬🇧", "English"),
-        ("ru", "🇷🇺", "Русский"),
+        ("ru", "🌐", "Русский"),
         ("uk", "🇺🇦", "Українська"),
     ]:
-        if current_ui_lang == code:
-            builder.button(text=f"✅ {flag} {name}", callback_data="dismiss")
-        else:
-            builder.button(text=f"{flag} {name}", callback_data=f"set_ui_lang:{code}")
-    builder.button(text="◀️ " + t("btn_back", current_ui_lang), callback_data="back_main")
+        label = f"✅ {flag} {name}" if current_ui_lang == code else f"{flag} {name}"
+        builder.button(text=label, callback_data=f"set_ui_lang:{code}")
     builder.adjust(1)
     return builder.as_markup()

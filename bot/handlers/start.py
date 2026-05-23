@@ -10,7 +10,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.utils.markdown import hbold
 
 from services.storage import get_user, set_target_language, sync_ui_language
-from keyboards.inline_kb import main_menu_kb, change_lang_kb, popular_langs_kb, upgrade_kb, back_main_kb, ui_lang_kb
+from keyboards.inline_kb import main_menu_reply_kb, change_lang_kb, popular_langs_kb, upgrade_kb, back_main_kb, ui_lang_kb
 from utils.languages import get_lang_label, resolve_lang, get_lang_name, get_lang_flag
 from utils.i18n import t, PLAN_EMOJI, plan_name
 from config import settings
@@ -48,53 +48,17 @@ async def cmd_start(message: Message, command: CommandObject) -> None:
 
     user = await get_user(message.from_user.id)
 
-    # Новый пользователь — показываем выбор языка интерфейса
-    if not user.ui_language:
-        # Определяем язык по умолчанию из Telegram
-        tg_lang = (message.from_user.language_code or "en")[:2]
-        if tg_lang not in ("en", "ru", "uk"):
-            tg_lang = "en"
-
-        # Показываем приветствие с выбором языка
-        await message.answer(
-            "🌐 <b>Welcome! / Ласкаво просимо! / Добро пожаловать!</b>\n\n"
-            "Choose your interface language:\n"
-            "Оберіть мову інтерфейсу:\n"
-            "Выберите язык интерфейса:",
-            reply_markup=ui_lang_kb(tg_lang),
-            parse_mode="HTML",
-        )
-        return
-
-    name = message.from_user.first_name or t("start_friend", user.ui_language)
-    bot_me = await message.bot.get_me()
-
-    text = t("start_greeting", user.ui_language,
-        name=hbold(name),
-        bot_username=bot_me.username,
-        target_lang=get_lang_label(user.target_language),
-        chars_remaining=user.chars_remaining,
-        chars_limit=user.chars_limit,
-    )
+    # Всегда показываем выбор языка интерфейса при /start
+    tg_lang = (message.from_user.language_code or "en")[:2]
+    if tg_lang not in ("en", "ru", "uk"):
+        tg_lang = "en"
 
     await message.answer(
-        text,
-        reply_markup=main_menu_kb(settings.mini_app_url, user.ui_language),
-        parse_mode="HTML",
-    )
-    bot_me = await message.bot.get_me()
-
-    text = t("start_greeting", user.ui_language,
-        name=hbold(name),
-        bot_username=bot_me.username,
-        target_lang=get_lang_label(user.target_language),
-        chars_remaining=user.chars_remaining,
-        chars_limit=user.chars_limit,
-    )
-
-    await message.answer(
-        text,
-        reply_markup=main_menu_kb(settings.mini_app_url, user.ui_language),
+        "🌐 <b>Welcome! / Ласкаво просимо! / Добро пожаловать!</b>\n\n"
+        "Choose your interface language:\n"
+        "Оберіть мову інтерфейсу:\n"
+        "Выберите язык интерфейса:",
+        reply_markup=ui_lang_kb(tg_lang),
         parse_mode="HTML",
     )
 
@@ -307,37 +271,93 @@ async def cb_back_main(callback: CallbackQuery) -> None:
     user = await get_user(callback.from_user.id)
     await callback.message.edit_text(
         t("back_main_status", user.ui_language, label=get_lang_label(user.target_language), remaining=user.chars_remaining),
-        reply_markup=main_menu_kb(settings.mini_app_url, user.ui_language),
         parse_mode="HTML",
     )
+    # Reply-клавиатура уже установлена и видна внизу — кнопки не дублируем
+
+
+# ── Reply keyboard handlers ──────────────────────────────────
+
+@router.message(F.text.in_([
+    t("btn_how_to_use", lang)
+    for lang in ("ru", "en", "uk")
+]))
+async def on_how_to_use_button(message: Message) -> None:
+    await cmd_help(message)
+
+
+@router.message(F.text.in_([
+    t("btn_change_lang", lang)
+    for lang in ("ru", "en", "uk")
+]))
+async def on_change_lang_button(message: Message) -> None:
+    user = await get_user(message.from_user.id)
+    await message.answer(
+        t("lang_current", user.ui_language, label=get_lang_label(user.target_language)),
+        reply_markup=change_lang_kb(user.favorite_langs, user.ui_language),
+        parse_mode="HTML",
+    )
+
+
+@router.message(F.text.in_([
+    t("btn_my_balance", lang)
+    for lang in ("ru", "en", "uk")
+]))
+async def on_my_balance_button(message: Message) -> None:
+    await cmd_quota(message)
 
 
 @router.callback_query(F.data.startswith("set_ui_lang:"))
 async def cb_set_ui_lang(callback: CallbackQuery) -> None:
     code = callback.data.split(":")[1]
-    await sync_ui_language(callback.from_user.id, code)
-    await _sync_ui_lang(callback.from_user.id, code)
-    user = await get_user(callback.from_user.id)
+    logger.info("cb_set_ui_lang: user=%s code=%s api_url=%s", callback.from_user.id, code, settings.api_url)
+    try:
+        await sync_ui_language(callback.from_user.id, code)
+        logger.info("cb_set_ui_lang: sync_ui_language OK")
+    except Exception as e:
+        logger.error("cb_set_ui_lang: sync_ui_language failed: %s", e, exc_info=True)
+    try:
+        await _sync_ui_lang(callback.from_user.id, code)
+        logger.info("cb_set_ui_lang: _sync_ui_lang OK")
+    except Exception as e:
+        logger.error("cb_set_ui_lang: _sync_ui_lang failed: %s", e, exc_info=True)
+    try:
+        user = await get_user(callback.from_user.id)
+        logger.info("cb_set_ui_lang: get_user OK ui_lang=%s", user.ui_language)
+    except Exception as e:
+        logger.error("cb_set_ui_lang: get_user failed: %s", e, exc_info=True)
+        user = None
 
-    await callback.answer(t("lang_set_success", user.ui_language, label=get_lang_label(code)), show_alert=False)
+    # Всегда отвечаем на callback, чтобы Telegram убрал loading
+    await callback.answer("✅ " + get_lang_label(code))
 
-    # Если пользователь новый (не было ui_language до), показываем main menu
-    # Иначе просто подтверждаем смену
-    name = callback.from_user.first_name or t("start_friend", user.ui_language)
-    bot_me = await callback.bot.get_me()
+    if user:
+        try:
+            name = callback.from_user.first_name or t("start_friend", user.ui_language)
+            bot_me = await callback.bot.get_me()
 
-    text = t("start_greeting", user.ui_language,
-        name=hbold(name),
-        bot_username=bot_me.username,
-        target_lang=get_lang_label(user.target_language),
-        chars_remaining=user.chars_remaining,
-        chars_limit=user.chars_limit,
-    )
-    await callback.message.edit_text(
-        text,
-        reply_markup=main_menu_kb(settings.mini_app_url, user.ui_language),
-        parse_mode="HTML",
-    )
+            text = t("start_greeting", user.ui_language,
+                name=hbold(name),
+                bot_username=bot_me.username,
+                target_lang=get_lang_label(user.target_language),
+                chars_remaining=user.chars_remaining,
+                chars_limit=user.chars_limit,
+            )
+            await callback.message.edit_text(
+                text,
+                parse_mode="HTML",
+            )
+
+            # Показываем reply-клавиатуру внизу (один раз, после выбора языка)
+            try:
+                await callback.message.answer(
+                    "💡 " + t("reply_menu_hint", user.ui_language),
+                    reply_markup=main_menu_reply_kb(settings.mini_app_url, user.ui_language),
+                )
+            except Exception as e2:
+                logger.error("cb_set_ui_lang: reply kb failed: %s", e2, exc_info=True)
+        except Exception as e:
+            logger.error("cb_set_ui_lang: show main menu failed: %s", e, exc_info=True)
 
 
 @router.callback_query(F.data == "referral")

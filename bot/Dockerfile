@@ -17,8 +17,8 @@ COPY . .
 # Не-root пользователь
 USER nobody
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')" || exit 1
+# No HEALTHCHECK — bot runs in polling mode with no HTTP server.
+# restart: unless-stopped in docker-compose handles crash recovery.
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["python", "main.py"]

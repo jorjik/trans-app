@@ -65,6 +65,7 @@
   "inline_quota_exceeded": "🚫 Character limit exceeded. Click to upgrade",
   "inline_error": "Could not translate. Try again.",
   "error_generic": "❌ Something went wrong. Try again.",
+  "reply_menu_hint": "👇 Use the buttons below to navigate",
   "btn_open_mini_app": "⚙️ Open Mini App",
   "btn_how_to_use": "📖 How to use",
   "btn_change_lang": "🌍 Change language",

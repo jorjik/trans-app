@@ -42,7 +42,7 @@ async def sync_ui_lang(
         return {"status": "invalid_lang"}
 
     user.ui_language = body.ui_language
-    await db.flush()
+    await db.commit()
     log.info("sync-ui-lang: updated user=%s lang=%s", user.id, body.ui_language)
     return {"status": "ok"}
 
@@ -163,5 +163,5 @@ async def update_user_settings(
     if body.favorite_langs is not None:
         user.favorite_langs = body.favorite_langs[:10]
 
-    await db.flush()
+    await db.commit()
     return {"status": "ok"}
