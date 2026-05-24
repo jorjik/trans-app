@@ -12,28 +12,15 @@ from keyboards.inline_kb import (
 )
 from aiogram.types import (
     InlineKeyboardMarkup, InlineKeyboardButton,
-    ReplyKeyboardMarkup, KeyboardButton, WebAppInfo,
+    ReplyKeyboardMarkup, KeyboardButton,
 )
 
 
 class TestMainMenuReplyKb:
     """Tests for main_menu_reply_kb() — reply keyboard."""
 
-    def test_reply_kb_with_webapp(self):
-        kb = main_menu_reply_kb("https://example.com", "en")
-        assert isinstance(kb, ReplyKeyboardMarkup)
-        assert kb.resize_keyboard is True
-        assert len(kb.keyboard) > 0
-        # Find the WebApp button
-        has_webapp = any(
-            btn.web_app is not None
-            for row in kb.keyboard
-            for btn in row
-        )
-        assert has_webapp
-
     def test_reply_kb_without_webapp(self):
-        kb = main_menu_reply_kb(mini_app_url=None, ui_lang="ru")
+        kb = main_menu_reply_kb("ru")
         assert isinstance(kb, ReplyKeyboardMarkup)
         # No WebApp button
         for row in kb.keyboard:
@@ -41,21 +28,20 @@ class TestMainMenuReplyKb:
                 assert btn.web_app is None
 
     def test_reply_kb_has_all_buttons(self):
-        kb = main_menu_reply_kb("https://example.com", "en")
-        # Should have: Open Mini App, How to use, Change language, My balance
+        kb = main_menu_reply_kb("en")
+        # Should have: How to use, Change language, My balance
         all_texts = [btn.text for row in kb.keyboard for btn in row]
-        assert any("Open Mini App" in t for t in all_texts)
         assert any("How" in t for t in all_texts)
         assert any("language" in t for t in all_texts)
         assert any("balance" in t for t in all_texts)
 
     def test_reply_kb_localized(self):
-        kb_ru = main_menu_reply_kb("https://example.com", "ru")
-        kb_en = main_menu_reply_kb("https://example.com", "en")
+        kb_ru = main_menu_reply_kb("ru")
+        kb_en = main_menu_reply_kb("en")
         ru_texts = [btn.text for row in kb_ru.keyboard for btn in row]
         en_texts = [btn.text for row in kb_en.keyboard for btn in row]
-        assert any("Открыть" in t for t in ru_texts)
-        assert any("Open" in t for t in en_texts)
+        assert any("Как пользоваться" in t for t in ru_texts)
+        assert any("How" in t for t in en_texts)
 
 
 class TestMainMenuKb:
@@ -154,16 +140,23 @@ class TestPopularLangsKb:
 class TestUiLangKb:
     """Tests for ui_lang_kb() — language selection for bot UI."""
 
-    def test_ui_lang_kb_three_langs(self):
+    def test_ui_lang_kb_ten_langs(self):
         kb = ui_lang_kb("en")
-        assert len(kb.inline_keyboard) == 3  # 3 languages
+        # adjust(2) = 5 rows of 2 buttons each
+        total = sum(len(row) for row in kb.inline_keyboard)
+        assert total == 10  # 10 languages total
+        # 10 buttons / 2 per row = 5 rows
+        assert len(kb.inline_keyboard) == 5
 
     def test_ui_lang_kb_current_selected(self):
         kb_en = ui_lang_kb("en")
-        assert "✅" in kb_en.inline_keyboard[0][0].text  # English should have ✅
+        assert "✅" in kb_en.inline_keyboard[0][0].text  # English (row 0, col 0) should have ✅
 
         kb_ru = ui_lang_kb("ru")
-        assert "✅" in kb_ru.inline_keyboard[1][0].text  # Russian should have ✅
+        assert "✅" in kb_ru.inline_keyboard[0][1].text  # Russian (row 0, col 1) should have ✅
+
+        kb_de = ui_lang_kb("de")
+        assert "✅" in kb_de.inline_keyboard[1][1].text  # German (row 1, col 1) should have ✅
 
     def test_ui_lang_kb_all_trigger_set_ui_lang(self):
         """All buttons should use set_ui_lang: callback data."""

@@ -43,8 +43,8 @@ async def get_or_create_user(
             await db.flush()
         return user, False
 
-    # РЎРѕР·РґР°С‘Рј РЅРѕРІРѕРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
-    ui_lang = language_code if language_code in ("en", "ru", "uk") else "en"
+    # Создаём нового пользователя
+    ui_lang = language_code if language_code in ("en", "ru", "uk", "de", "fr", "es", "pl", "it", "pt", "tr") else "en"
     user = User(
         telegram_id=telegram_id,
         telegram_id_hash=tg_hash,

@@ -11,7 +11,7 @@ from aiogram.utils.markdown import hbold
 
 from services.storage import get_user, set_target_language, sync_ui_language
 from keyboards.inline_kb import main_menu_reply_kb, change_lang_kb, popular_langs_kb, upgrade_kb, back_main_kb, ui_lang_kb
-from utils.languages import get_lang_label, resolve_lang, get_lang_name, get_lang_flag
+from utils.languages import get_lang_label, resolve_lang, get_lang_name, get_lang_flag, UI_LANGUAGES
 from utils.i18n import t, PLAN_EMOJI, plan_name
 from config import settings
 
@@ -50,7 +50,7 @@ async def cmd_start(message: Message, command: CommandObject) -> None:
 
     # Всегда показываем выбор языка интерфейса при /start
     tg_lang = (message.from_user.language_code or "en")[:2]
-    if tg_lang not in ("en", "ru", "uk"):
+    if tg_lang not in UI_LANGUAGES:
         tg_lang = "en"
 
     await message.answer(
@@ -151,7 +151,7 @@ async def cmd_uilang(message: Message) -> None:
     args = message.text.split()[1:]
     if args:
         code = args[0].strip().lower()
-        if code in ("en", "ru", "uk"):
+        if code in UI_LANGUAGES:
             await sync_ui_language(message.from_user.id, code)
             await _sync_ui_lang(message.from_user.id, code)
             user2 = await get_user(message.from_user.id)
@@ -162,7 +162,7 @@ async def cmd_uilang(message: Message) -> None:
             return
         else:
             await message.answer(
-                "❌ Доступные языки: en, ru, uk",
+                "❌ " + t("lang_unknown", user.ui_language, code=args[0]),
                 parse_mode="HTML",
             )
             return
@@ -280,7 +280,7 @@ async def cb_back_main(callback: CallbackQuery) -> None:
 
 @router.message(F.text.in_([
     t("btn_how_to_use", lang)
-    for lang in ("ru", "en", "uk")
+    for lang in UI_LANGUAGES
 ]))
 async def on_how_to_use_button(message: Message) -> None:
     await cmd_help(message)
@@ -288,7 +288,7 @@ async def on_how_to_use_button(message: Message) -> None:
 
 @router.message(F.text.in_([
     t("btn_change_lang", lang)
-    for lang in ("ru", "en", "uk")
+    for lang in UI_LANGUAGES
 ]))
 async def on_change_lang_button(message: Message) -> None:
     user = await get_user(message.from_user.id)
@@ -301,7 +301,7 @@ async def on_change_lang_button(message: Message) -> None:
 
 @router.message(F.text.in_([
     t("btn_my_balance", lang)
-    for lang in ("ru", "en", "uk")
+    for lang in UI_LANGUAGES
 ]))
 async def on_my_balance_button(message: Message) -> None:
     await cmd_quota(message)
@@ -352,7 +352,7 @@ async def cb_set_ui_lang(callback: CallbackQuery) -> None:
             try:
                 await callback.message.answer(
                     "💡 " + t("reply_menu_hint", user.ui_language),
-                    reply_markup=main_menu_reply_kb(settings.mini_app_url, user.ui_language),
+                    reply_markup=main_menu_reply_kb(user.ui_language),
                 )
             except Exception as e2:
                 logger.error("cb_set_ui_lang: reply kb failed: %s", e2, exc_info=True)

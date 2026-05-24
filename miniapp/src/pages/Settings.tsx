@@ -65,9 +65,16 @@ export function Settings({ user, onSave, isSaving }: SettingsProps) {
           <Select
             label={t('settings.ui_language', uiLang)}
             data={[
-              { value: 'ru', label: t('settings.ui_lang_ru', uiLang) },
-              { value: 'uk', label: t('settings.ui_lang_uk', uiLang) },
-              { value: 'en', label: t('settings.ui_lang_en', uiLang) },
+              { value: 'en', label: 'English' },
+              { value: 'ru', label: 'Русский' },
+              { value: 'uk', label: 'Українська' },
+              { value: 'de', label: 'Deutsch' },
+              { value: 'fr', label: 'Français' },
+              { value: 'es', label: 'Español' },
+              { value: 'it', label: 'Italiano' },
+              { value: 'pt', label: 'Português' },
+              { value: 'pl', label: 'Polski' },
+              { value: 'tr', label: 'Türkçe' },
             ]}
             value={uiLang}
             onChange={(value) => value && setUiLang(value)}

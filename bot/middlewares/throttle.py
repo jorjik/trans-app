@@ -14,6 +14,7 @@ from cachetools import TTLCache
 from config import settings
 from utils.i18n import t
 from services.storage import get_user
+from utils.languages import UI_LANGUAGES
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ class ThrottleMiddleware(BaseMiddleware):
             logger.warning("Rate limit hit for user %s", uid)
             if isinstance(event, Message):
                 ui_lang = (event.from_user.language_code or "en")[:2]
-                if ui_lang not in ("en", "ru", "uk"):
+                if ui_lang not in UI_LANGUAGES:
                     ui_lang = "en"
                 await event.answer(
                     t("throttle_message", ui_lang),

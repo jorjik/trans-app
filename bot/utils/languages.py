@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from langdetect import LangDetectException, detect
 
+# Языки, доступные для интерфейса бота и Mini App
+UI_LANGUAGES = ("en", "ru", "uk", "de", "fr", "es", "pl", "it", "pt", "tr")
+
 # Канонические коды (lowercase) → отображаемое имя
 LANG_NAMES: dict[str, str] = {
     "en": "English",

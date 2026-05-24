@@ -304,14 +304,14 @@ class TestCmdUilang:
             return FakeUserData(telegram_id=123, ui_language="ru")
         monkeypatch.setattr("handlers.start.get_user", fake_get_user)
 
-        msg = make_message("/uilang de", from_id=123)
-        msg.text = "/uilang de"
+        msg = make_message("/uilang zz", from_id=123)
+        msg.text = "/uilang zz"
 
         await cmd_uilang(msg)
 
         msg.answer.assert_called_once()
         call_text = msg.answer.call_args[0][0]
-        assert "Доступные языки" in call_text
+        assert "zz" in call_text
 
     @pytest.mark.asyncio
     async def test_cmd_uilang_without_code_shows_keyboard(self, monkeypatch, patch_settings):

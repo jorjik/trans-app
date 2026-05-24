@@ -24,6 +24,10 @@ async def verify_bot_secret(x_bot_secret: str = Header(...)) -> None:
         raise HTTPException(status_code=403, detail="Forbidden")
 
 
+# Канонические коды UI-языков
+_UI_LANGS = ("en", "ru", "uk", "de", "fr", "es", "pl", "it", "pt", "tr")
+
+
 class SyncUiLangRequest(BaseModel):
     telegram_id: int
     ui_language: str
@@ -37,7 +41,7 @@ async def sync_ui_lang(
     """Синхронизирует ui_language из бота в БД API."""
     user = await _get_or_create_user(db, body.telegram_id)
 
-    if body.ui_language not in ("en", "ru", "uk"):
+    if body.ui_language not in _UI_LANGS:
         log.warning("sync-ui-lang: invalid language %s", body.ui_language)
         return {"status": "invalid_lang"}
 
@@ -158,7 +162,7 @@ async def update_user_settings(
     if body.target_language is not None:
         user.target_language = body.target_language
     if body.ui_language is not None:
-        if body.ui_language in ("en", "ru", "uk"):
+        if body.ui_language in _UI_LANGS:
             user.ui_language = body.ui_language
     if body.favorite_langs is not None:
         user.favorite_langs = body.favorite_langs[:10]
