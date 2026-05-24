@@ -1,6 +1,12 @@
+import logging
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field, computed_field
+from pydantic import Field, model_validator, computed_field
 from typing import Optional
+
+log = logging.getLogger(__name__)
+
+PLACEHOLDER_INTERNAL_SECRET = "change-me-bot-secret"
 
 
 class Settings(BaseSettings):
@@ -31,7 +37,7 @@ class Settings(BaseSettings):
 
     # Backend API (синхронизация оплаты Stars + ui_language)
     api_url: Optional[str] = Field(None, alias="BACKEND_API_URL")
-    bot_internal_secret: str = Field("change-me-bot-secret", alias="BOT_INTERNAL_SECRET")
+    bot_internal_secret: str = Field(PLACEHOLDER_INTERNAL_SECRET, alias="BOT_INTERNAL_SECRET")
 
     # App
     env: str = Field("development", alias="ENV")
@@ -51,6 +57,17 @@ class Settings(BaseSettings):
     # Rate limiting
     max_requests_per_minute: int = Field(30, alias="MAX_REQUESTS_PER_MINUTE")
     max_translate_per_minute: int = Field(15, alias="MAX_TRANSLATE_PER_MINUTE")
+
+    @model_validator(mode="after")
+    def _validate_production_secrets(self) -> "Settings":
+        if self.env != "production":
+            return self
+        if self.bot_internal_secret in (PLACEHOLDER_INTERNAL_SECRET, ""):
+            log.warning(
+                "BOT_INTERNAL_SECRET is still set to placeholder in production! "
+                "Set a strong random value via BOT_INTERNAL_SECRET env var."
+            )
+        return self
 
     @computed_field  # type: ignore[prop-decorator]
     @property
