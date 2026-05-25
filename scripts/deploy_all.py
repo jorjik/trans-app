@@ -60,9 +60,17 @@ print('=== 3. Uploading API Python files ===')
 for f in ['routers/internal.py', 'routers/admin.py', 'routers/kofi.py', 'routers/webhook.py', 'routers/__init__.py', 'routers/billing.py', 'services/auth.py', 'services/user_service.py', 'services/kofi.py', 'services/paypal.py', 'services/monobank.py', 'models/__init__.py', 'core/config.py', 'requirements.txt']:
     put_file('api/' + f, 'api/' + f)
 
-# === 4. Upload miniapp dist ===
+# === 4. Upload API database migration files ===
 print()
-print('=== 4. Uploading miniapp dist ===')
+print('=== 4. Uploading API database migration files ===')
+migrations = sorted(os.listdir(os.path.join(PROJECT_ROOT, 'api/db/versions')))
+for f in migrations:
+    if f.endswith('.py'):
+        put_file(f'api/db/versions/{f}', f'api/db/versions/{f}')
+
+# === 5. Upload miniapp dist ===
+print()
+print('=== 5. Uploading miniapp dist ===')
 put_file('miniapp/dist/index.html', 'miniapp/dist/index.html')
 assets = glob.glob(os.path.join(PROJECT_ROOT, 'miniapp/dist/assets/*'))
 for asset_path in assets:
@@ -71,51 +79,51 @@ for asset_path in assets:
 
 sftp.close()
 
-# === 5. Rebuild API (requirements.txt changed — ecdsa added) ===
+# === 6. Rebuild API (requirements.txt changed — ecdsa added) ===
 print()
-print('=== 5. Rebuilding API container ===')
+print('=== 6. Rebuilding API container ===')
 out = run('cd /opt/trans-app && docker compose -f docker-compose.prod.yml build api 2>&1')
 print(out[-1500:] if len(out) > 1500 else out)
 
-# === 6. Rebuild bot ===
+# === 7. Rebuild bot ===
 print()
-print('=== 6. Rebuilding bot container ===')
+print('=== 7. Rebuilding bot container ===')
 out = run('cd /opt/trans-app && docker compose -f docker-compose.prod.yml build bot 2>&1')
 print(out[-1500:] if len(out) > 1500 else out)
 
-# === 7. Restart containers ===
+# === 8. Restart containers ===
 print()
-print('=== 7. Restarting API ===')
+print('=== 8. Restarting API ===')
 out = run('cd /opt/trans-app && docker compose -f docker-compose.prod.yml up -d --no-deps api 2>&1')
 print(out)
 
 print()
-print('=== 8. Restarting bot ===')
+print('=== 9. Restarting bot ===')
 out = run('cd /opt/trans-app && docker compose -f docker-compose.prod.yml up -d --no-deps bot 2>&1')
 print(out)
 
-# === 9. Wait and verify ===
+# === 10. Wait and verify ===
 print()
 print('Waiting 10 seconds...')
 time.sleep(10)
 
 print()
-print('=== 9. Container status ===')
+print('=== 10. Container status ===')
 out = run("docker ps --format '{{.Names}}\t{{.Status}}' | grep trans-app")
 print(out)
 
 print()
-print('=== 10. Bot logs (last 5) ===')
+print('=== 11. Bot logs (last 5) ===')
 out = run('docker logs trans-app-bot-1 2>&1 | tail -5')
 print(out)
 
 print()
-print('=== 11. API health ===')
+print('=== 12. API health ===')
 out = run('curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health 2>&1')
 print('  Health:', out)
 
 print()
-print('=== 12. API logs (last 3) ===')
+print('=== 13. API logs (last 3) ===')
 out = run('docker logs trans-app-api-1 2>&1 | tail -3')
 print(out)
 
