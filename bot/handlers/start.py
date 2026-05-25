@@ -142,6 +142,12 @@ async def cmd_quota(message: Message) -> None:
     await message.answer(text, reply_markup=kb, parse_mode="HTML")
 
 
+@router.message(Command("appss_verify"))
+async def cmd_appss_verify(message: Message) -> None:
+    """Команда для верификации."""
+    await message.answer("appss_17fbd8")
+
+
 @router.message(Command("uilang"))
 async def cmd_uilang(message: Message) -> None:
     """Команда для смены языка интерфейса бота и Mini App."""
