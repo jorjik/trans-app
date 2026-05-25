@@ -63,6 +63,19 @@ class Settings(BaseSettings):
     # Admin
     admin_tg_ids: list[int] = Field(default_factory=list, alias="ADMIN_TG_IDS")
 
+    # Ko-fi
+    kofi_verification_token: Optional[str] = Field(None, alias="KOFI_VERIFICATION_TOKEN")
+    kofi_page_url: Optional[str] = Field(None, alias="KOFI_PAGE_URL")
+    kofi_currency: str = Field("USD", alias="KOFI_CURRENCY")
+    kofi_amount_per_star: float = Field(0.02, alias="KOFI_AMOUNT_PER_STAR")
+
+    # PayPal
+    paypal_client_id: Optional[str] = Field(None, alias="PAYPAL_CLIENT_ID")
+    paypal_client_secret: Optional[str] = Field(None, alias="PAYPAL_CLIENT_SECRET")
+    paypal_mode: str = Field("sandbox", alias="PAYPAL_MODE")
+    paypal_currency: str = Field("USD", alias="PAYPAL_CURRENCY")
+    paypal_amount_per_star: float = Field(0.02, alias="PAYPAL_AMOUNT_PER_STAR")
+
     @model_validator(mode="after")
     def _validate_production_secrets(self) -> "Settings":
         if self.env != "production":

@@ -201,3 +201,42 @@ class BillingEvent(Base):
     )
 
     user: Mapped["User"] = relationship("User")
+
+
+# ── PaymentIntent ──────────────────────────────────────────────────────────────
+
+class PaymentIntent(Base):
+    __tablename__ = "payment_intents"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    provider: Mapped[str] = mapped_column(String(20), nullable=False)  # kofi / paypal
+    plan_id: Mapped[str] = mapped_column(String(20), nullable=False)
+    code: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="pending")  # pending / paid / expired / cancelled
+    amount: Mapped[str] = mapped_column(String(32), nullable=True)
+    currency: Mapped[str] = mapped_column(String(10), default="USD")
+    external_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, server_default=func.now()
+    )
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped["User"] = relationship("User")
+
+
+# ── BotConfig ──────────────────────────────────────────────────────────────────
+
+class BotConfig(Base):
+    """Key-value хранилище настроек бота (глобальные конфиги)."""
+    __tablename__ = "bot_config"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    key: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    value: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow,
+        server_default=func.now(),
+    )

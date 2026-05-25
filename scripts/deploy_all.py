@@ -51,13 +51,13 @@ for f in all_locales:
 # === 2. Upload bot Python files ===
 print()
 print('=== 2. Uploading bot Python files ===')
-for f in ['utils/languages.py', 'keyboards/inline_kb.py', 'handlers/start.py', 'handlers/admin.py', 'middlewares/throttle.py']:
+for f in ['utils/languages.py', 'keyboards/inline_kb.py', 'handlers/start.py', 'handlers/admin.py', 'handlers/billing.py', 'services/billing.py', 'middlewares/throttle.py']:
     put_file('bot/' + f, 'bot/' + f)
 
 # === 3. Upload API Python files ===
 print()
 print('=== 3. Uploading API Python files ===')
-for f in ['routers/internal.py', 'routers/admin.py', 'services/auth.py', 'services/user_service.py']:
+for f in ['routers/internal.py', 'routers/admin.py', 'routers/kofi.py', 'services/auth.py', 'services/user_service.py', 'services/kofi.py', 'services/paypal.py']:
     put_file('api/' + f, 'api/' + f)
 
 # === 4. Upload miniapp dist ===

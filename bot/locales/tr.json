@@ -102,5 +102,21 @@
   "admin_no_stats": "❌ İstatistikler alınamadı. API kullanılamıyor olabilir.",
   "admin_access_denied": "⛔ Erişim reddedildi.",
   "admin_loading": "⏳ Yükleniyor...",
-  "admin_paid_percent": "Ücretli: <b>{pct}%</b> ({count} kullanıcı)"
+  "admin_paid_percent": "Ücretli: <b>{pct}%</b> ({count} kullanıcı)",
+  "billing_choose_method": "<b>{plan}</b> ({price_stars} ⭐) için ödeme yöntemi seçin:",
+  "billing_method_stars": "⭐ Telegram Stars",
+  "billing_method_kofi": "☕ Ko-fi",
+  "billing_method_paypal": "💳 PayPal",
+  "billing_kofi_instructions": "☕ <b>Ko-fi ile Öde</b>\n\nPlan: <b>{plan}</b>\nTutar: <b>{amount} {currency}</b>\n\n1. Aşağıdaki butona tıklayın\n2. <b>{amount}</b> {currency} tutarını girin\n3. Mesaj alanına kodunuzu girin: <code>{code}</code>\n4. Ödemeyi tamamlayın\n\nÖdeme sonrası plan otomatik olarak aktifleşir.",
+  "billing_kofi_open": "☕ Ko-fi'yi Aç",
+  "billing_paypal_instructions": "💳 <b>PayPal ile Öde</b>\n\nPlan: <b>{plan}</b>\nTutar: <b>{amount} {currency}</b>\n\n1. «PayPal'da Onayla»ya tıklayın\n2. Giriş yapın ve ödemeyi onaylayın\n3. Geri gelin ve «Ödemeyi Kontrol Et»e tıklayın",
+  "billing_paypal_approve": "💳 PayPal'da Onayla",
+  "billing_paypal_check": "🔄 Ödemeyi Kontrol Et",
+  "billing_paypal_pending": "⏳ <b>Ödeme bekleniyor...</b>\n\nLütfen PayPal'da ödemeyi onaylayın, ardından «Ödemeyi Kontrol Et»e tıklayın.",
+  "billing_paypal_success": "✅ <b>Ödeme alındı!</b>\n\n<b>{plan}</b> planı aktifleştirildi!\nDesteğiniz için teşekkürler! 🙏",
+  "billing_paypal_error": "❌ Ödeme başarısız oldu veya iptal edildi. Lütfen tekrar deneyin.",
+  "billing_generic_error": "❌ Bir şeyler yanlış gitti. Lütfen daha sonra tekrar deneyin.",
+  "admin_btn_payment": "💳 Ödeme Yöntemleri",
+  "admin_payment_title": "💳 <b>Ödeme Yöntemi Görünürlüğü</b>\n\nKullanıcıların hangi ödeme yöntemlerini göreceğini ayarlayın:\n\nAçıp kapatmak için bir düğmeye dokunun.",
+  "admin_payment_error": "❌ Ödeme ayarları güncellenemedi. Tekrar deneyin."
 }

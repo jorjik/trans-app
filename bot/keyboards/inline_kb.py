@@ -6,6 +6,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 from utils.languages import get_lang_flag, get_lang_name, UI_LANGUAGES
 from utils.i18n import t
 from config import settings
+from services.billing import BILLABLE_PLANS
 
 
 def main_menu_reply_kb(ui_lang: str = "ru", user_id: int | None = None) -> ReplyKeyboardMarkup:
@@ -67,11 +68,64 @@ def change_lang_kb(favorite_langs: list[str], ui_lang: str = "ru") -> InlineKeyb
 
 
 def upgrade_kb(ui_lang: str = "ru") -> InlineKeyboardMarkup:
-    """Кнопки под балансом (апгрейд + назад)."""
+    """Кнопки под балансом (выбор тарифа + назад)."""
     builder = InlineKeyboardBuilder()
-    builder.button(text=t("btn_upgrade_starter", ui_lang), callback_data="upgrade:starter")
+    for plan_id in ["starter", "pro", "business"]:
+        plan = BILLABLE_PLANS.get(plan_id)
+        if plan:
+            label = t(f"plan_{plan_id}", ui_lang)
+            builder.button(text=f"{label} — {plan.stars} ⭐", callback_data=f"upgrade:{plan_id}")
     builder.button(text=t("btn_invite_friend", ui_lang), callback_data="referral")
     builder.button(text=t("btn_back", ui_lang), callback_data="back_main")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def billing_methods_kb(
+    plan_id: str,
+    ui_lang: str = "ru",
+    visible: dict | None = None,
+) -> InlineKeyboardMarkup:
+    """Выбор способа оплаты для тарифного плана.
+    Параметр visible — словарь вида {"stars": True, "kofi": True, "paypal": True}.
+    Если None, показывает всё.
+    """
+    builder = InlineKeyboardBuilder()
+    if visible is None or visible.get("stars", True):
+        builder.button(text=t("billing_method_stars", ui_lang), callback_data=f"pay_stars:{plan_id}")
+    if visible is None or visible.get("kofi", True):
+        builder.button(text=t("billing_method_kofi", ui_lang), callback_data=f"pay_kofi:{plan_id}")
+    if visible is None or visible.get("paypal", True):
+        builder.button(text=t("billing_method_paypal", ui_lang), callback_data=f"pay_paypal:{plan_id}")
+    builder.button(text=t("btn_back", ui_lang), callback_data="quota")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def kofi_payment_kb(page_url: str, ui_lang: str = "ru") -> InlineKeyboardMarkup:
+    """Кнопка для оплаты через Ko-fi."""
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text=t("billing_kofi_open", ui_lang),
+        url=page_url,
+    )
+    builder.button(text=t("btn_back", ui_lang), callback_data="quota")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def paypal_payment_kb(approval_url: str, order_id: str, ui_lang: str = "ru") -> InlineKeyboardMarkup:
+    """Кнопки для оплаты через PayPal."""
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text=t("billing_paypal_approve", ui_lang),
+        url=approval_url,
+    )
+    builder.button(
+        text=t("billing_paypal_check", ui_lang),
+        callback_data=f"paypal_check:{order_id}",
+    )
+    builder.button(text=t("btn_back", ui_lang), callback_data="quota")
     builder.adjust(1)
     return builder.as_markup()
 
@@ -115,7 +169,23 @@ def admin_menu_kb(ui_lang: str = "ru") -> InlineKeyboardMarkup:
     """Админ-меню."""
     builder = InlineKeyboardBuilder()
     builder.button(text=t("admin_btn_stats", ui_lang), callback_data="admin_stats")
+    builder.button(text=t("admin_btn_payment", ui_lang), callback_data="admin_payment")
     builder.button(text=t("btn_back", ui_lang), callback_data="back_main")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def admin_payment_kb(config: dict, ui_lang: str = "ru") -> InlineKeyboardMarkup:
+    """Клавиатура настройки видимости способов оплаты."""
+    builder = InlineKeyboardBuilder()
+    methods = [
+        ("stars", f"⭐ Stars {'✅' if config.get('stars', True) else '❌'}", "admin_toggle:stars"),
+        ("kofi", f"☕ Ko-fi {'✅' if config.get('kofi', True) else '❌'}", "admin_toggle:kofi"),
+        ("paypal", f"💳 PayPal {'✅' if config.get('paypal', True) else '❌'}", "admin_toggle:paypal"),
+    ]
+    for _, label, cb in methods:
+        builder.button(text=label, callback_data=cb)
+    builder.button(text=t("btn_back", ui_lang), callback_data="admin_back")
     builder.adjust(1)
     return builder.as_markup()
 

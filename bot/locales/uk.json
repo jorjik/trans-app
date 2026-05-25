@@ -102,5 +102,21 @@
   "admin_no_stats": "❌ Не вдалося отримати статистику. API недоступний.",
   "admin_access_denied": "⛔ Доступ заборонено.",
   "admin_loading": "⏳ Завантаження...",
-  "admin_paid_percent": "Платних: <b>{pct}%</b> ({count} осіб)"
+  "admin_paid_percent": "Платних: <b>{pct}%</b> ({count} осіб)",
+  "billing_choose_method": "Виберіть спосіб оплати для <b>{plan}</b> ({price_stars} ⭐):",
+  "billing_method_stars": "⭐ Telegram Stars",
+  "billing_method_kofi": "☕ Ko-fi",
+  "billing_method_paypal": "💳 PayPal",
+  "billing_kofi_instructions": "☕ <b>Оплата через Ko-fi</b>\n\nТариф: <b>{plan}</b>\nСума: <b>{amount} {currency}</b>\n\n1. Натисніть кнопку нижче\n2. Введіть суму <b>{amount}</b> {currency}\n3. У полі повідомлення вкажіть код: <code>{code}</code>\n4. Завершіть оплату\n\nПісля оплати тариф активується автоматично.",
+  "billing_kofi_open": "☕ Відкрити Ko-fi",
+  "billing_paypal_instructions": "💳 <b>Оплата через PayPal</b>\n\nТариф: <b>{plan}</b>\nСума: <b>{amount} {currency}</b>\n\n1. Натисніть «Підтвердити в PayPal»\n2. Увійдіть та підтвердьте платіж\n3. Поверніться та натисніть «Перевірити оплату»",
+  "billing_paypal_approve": "💳 Підтвердити в PayPal",
+  "billing_paypal_check": "🔄 Перевірити оплату",
+  "billing_paypal_pending": "⏳ <b>Очікування оплати...</b>\n\nБудь ласка, підтвердьте платіж у PayPal, потім натисніть «Перевірити оплату».",
+  "billing_paypal_success": "✅ <b>Оплату отримано!</b>\n\nТариф <b>{plan}</b> активовано!\nДякуємо за підтримку! 🙏",
+  "billing_paypal_error": "❌ Платіж не вдався або скасовано. Спробуйте ще раз.",
+  "billing_generic_error": "❌ Щось пішло не так. Спробуйте пізніше.",
+  "admin_btn_payment": "💳 Способи оплати",
+  "admin_payment_title": "💳 <b>Видимість способів оплати</b>\n\nУвімкни/вимкни які способи оплати бачать користувачі:\n\nНатисни кнопку щоб увімкнути/вимкнути.",
+  "admin_payment_error": "❌ Не вдалося оновити налаштування оплати. Спробуйте ще раз."
 }

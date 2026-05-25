@@ -102,5 +102,21 @@
   "admin_no_stats": "❌ No se pudieron obtener las estadísticas. API no disponible.",
   "admin_access_denied": "⛔ Acceso denegado.",
   "admin_loading": "⏳ Cargando...",
-  "admin_paid_percent": "De pago: <b>{pct}%</b> ({count} usuarios)"
+  "admin_paid_percent": "De pago: <b>{pct}%</b> ({count} usuarios)",
+  "billing_choose_method": "Elija un método de pago para <b>{plan}</b> ({price_stars} ⭐):",
+  "billing_method_stars": "⭐ Telegram Stars",
+  "billing_method_kofi": "☕ Ko-fi",
+  "billing_method_paypal": "💳 PayPal",
+  "billing_kofi_instructions": "☕ <b>Pagar con Ko-fi</b>\n\nPlan: <b>{plan}</b>\nMonto: <b>{amount} {currency}</b>\n\n1. Haga clic en el botón de abajo\n2. Ingrese el monto <b>{amount}</b> {currency}\n3. En el campo de mensaje, ingrese su código: <code>{code}</code>\n4. Complete el pago\n\nDespués del pago, el plan se activará automáticamente.",
+  "billing_kofi_open": "☕ Abrir Ko-fi",
+  "billing_paypal_instructions": "💳 <b>Pagar con PayPal</b>\n\nPlan: <b>{plan}</b>\nMonto: <b>{amount} {currency}</b>\n\n1. Haga clic en «Aprobar en PayPal»\n2. Inicie sesión y confirme el pago\n3. Vuelva y haga clic en «Verificar pago»",
+  "billing_paypal_approve": "💳 Aprobar en PayPal",
+  "billing_paypal_check": "🔄 Verificar pago",
+  "billing_paypal_pending": "⏳ <b>Esperando pago...</b>\n\nApruebe el pago en PayPal, luego haga clic en «Verificar pago».",
+  "billing_paypal_success": "✅ <b>¡Pago recibido!</b>\n\nPlan <b>{plan}</b> activado!\n¡Gracias por su apoyo! 🙏",
+  "billing_paypal_error": "❌ Pago fallido o cancelado. Intente de nuevo.",
+  "billing_generic_error": "❌ Algo salió mal. Intente de nuevo más tarde.",
+  "admin_btn_payment": "💳 Métodos de pago",
+  "admin_payment_title": "💳 <b>Visibilidad de métodos de pago</b>\n\nActiva/desactiva qué métodos ven los usuarios:\n\nToca un botón para activar/desactivar.",
+  "admin_payment_error": "❌ No se pudieron actualizar los ajustes de pago. Intente de nuevo."
 }

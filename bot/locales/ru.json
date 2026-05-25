@@ -102,5 +102,21 @@
   "admin_no_stats": "❌ Не удалось получить статистику. API недоступен.",
   "admin_access_denied": "⛔ Доступ запрещён.",
   "admin_loading": "⏳ Загрузка...",
-  "admin_paid_percent": "Платных: <b>{pct}%</b> ({count} чел.)"
+  "admin_paid_percent": "Платных: <b>{pct}%</b> ({count} чел.)",
+  "billing_choose_method": "Выберите способ оплаты для <b>{plan}</b> ({price_stars} ⭐):",
+  "billing_method_stars": "⭐ Telegram Stars",
+  "billing_method_kofi": "☕ Ko-fi",
+  "billing_method_paypal": "💳 PayPal",
+  "billing_kofi_instructions": "☕ <b>Оплата через Ko-fi</b>\n\nТариф: <b>{plan}</b>\nСумма: <b>{amount} {currency}</b>\n\n1. Нажмите кнопку ниже\n2. Введите сумму <b>{amount}</b> {currency}\n3. В поле сообщения укажите код: <code>{code}</code>\n4. Завершите оплату\n\nПосле оплаты тариф активируется автоматически.",
+  "billing_kofi_open": "☕ Открыть Ko-fi",
+  "billing_paypal_instructions": "💳 <b>Оплата через PayPal</b>\n\nТариф: <b>{plan}</b>\nСумма: <b>{amount} {currency}</b>\n\n1. Нажмите «Подтвердить в PayPal»\n2. Войдите и подтвердите платёж\n3. Вернитесь и нажмите «Проверить оплату»",
+  "billing_paypal_approve": "💳 Подтвердить в PayPal",
+  "billing_paypal_check": "🔄 Проверить оплату",
+  "billing_paypal_pending": "⏳ <b>Ожидание оплаты...</b>\n\nПожалуйста, подтвердите платёж в PayPal, затем нажмите «Проверить оплату».",
+  "billing_paypal_success": "✅ <b>Оплата получена!</b>\n\nТариф <b>{plan}</b> активирован!\nСпасибо за поддержку! 🙏",
+  "billing_paypal_error": "❌ Платёж не удался или отменён. Попробуйте снова.",
+  "billing_generic_error": "❌ Что-то пошло не так. Попробуйте позже.",
+  "admin_btn_payment": "💳 Способы оплаты",
+  "admin_payment_title": "💳 <b>Видимость способов оплаты</b>\n\nВключи/выключи какие способы оплаты видят пользователи:\n\nНажми кнопку чтобы включить/выключить.",
+  "admin_payment_error": "❌ Не удалось обновить настройки оплаты. Попробуйте ещё раз."
 }

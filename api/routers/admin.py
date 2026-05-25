@@ -11,9 +11,11 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from pydantic import BaseModel
+
 from core.config import settings
 from db.session import get_db
-from models import User, TranslationLog, Quota, Subscription
+from models import User, TranslationLog, Quota, Subscription, BotConfig
 
 log = logging.getLogger(__name__)
 
@@ -141,3 +143,70 @@ async def get_admin_stats(
         "active_subscriptions": active_subs,
         "top_languages": top_languages,
     }
+
+
+# ── Payment methods visibility ─────────────────────────────────────────────────
+
+
+class PaymentMethodsConfig(BaseModel):
+    stars: bool = True
+    kofi: bool = True
+    paypal: bool = True
+
+
+def _default_payment_config() -> dict:
+    return {"stars": True, "kofi": True, "paypal": True}
+
+
+@router.get(
+    "/payment-config",
+    dependencies=[Depends(verify_bot_secret)],
+    response_model=PaymentMethodsConfig,
+)
+async def get_payment_config(
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Возвращает текущие настройки видимости способов оплаты."""
+    result = await db.execute(
+        select(BotConfig).where(BotConfig.key == "payment_methods_visible")
+    )
+    config = result.scalar_one_or_none()
+    if not config:
+        return _default_payment_config()
+    return config.value
+
+
+class PaymentConfigUpdate(BaseModel):
+    method: str  # "stars", "kofi", or "paypal"
+    visible: bool
+
+
+@router.post(
+    "/payment-config",
+    dependencies=[Depends(verify_bot_secret)],
+    response_model=PaymentMethodsConfig,
+)
+async def toggle_payment_method(
+    body: PaymentConfigUpdate,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Включает/выключает способ оплаты."""
+    if body.method not in ("stars", "kofi", "paypal"):
+        raise HTTPException(status_code=400, detail="Invalid method")
+
+    result = await db.execute(
+        select(BotConfig).where(BotConfig.key == "payment_methods_visible")
+    )
+    config = result.scalar_one_or_none()
+    if not config:
+        config = BotConfig(
+            key="payment_methods_visible",
+            value=_default_payment_config(),
+        )
+        db.add(config)
+
+    config.value[body.method] = body.visible
+    await db.commit()
+
+    log.info("Payment config updated: %s=%s", body.method, body.visible)
+    return config.value

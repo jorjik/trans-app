@@ -102,5 +102,21 @@
   "admin_no_stats": "❌ Impossible de récupérer les statistiques. API peut être indisponible.",
   "admin_access_denied": "⛔ Accès refusé.",
   "admin_loading": "⏳ Chargement...",
-  "admin_paid_percent": "Payants : <b>{pct}%</b> ({count} utilisateurs)"
+  "admin_paid_percent": "Payants : <b>{pct}%</b> ({count} utilisateurs)",
+  "billing_choose_method": "Choisissez un moyen de paiement pour <b>{plan}</b> ({price_stars} ⭐):",
+  "billing_method_stars": "⭐ Telegram Stars",
+  "billing_method_kofi": "☕ Ko-fi",
+  "billing_method_paypal": "💳 PayPal",
+  "billing_kofi_instructions": "☕ <b>Payer avec Ko-fi</b>\n\nForfait: <b>{plan}</b>\nMontant: <b>{amount} {currency}</b>\n\n1. Cliquez sur le bouton ci-dessous\n2. Entrez le montant <b>{amount}</b> {currency}\n3. Dans le champ message, entrez votre code: <code>{code}</code>\n4. Terminez le paiement\n\nAprès le paiement, le forfait sera activé automatiquement.",
+  "billing_kofi_open": "☕ Ouvrir Ko-fi",
+  "billing_paypal_instructions": "💳 <b>Payer avec PayPal</b>\n\nForfait: <b>{plan}</b>\nMontant: <b>{amount} {currency}</b>\n\n1. Cliquez sur «Approuver sur PayPal»\n2. Connectez-vous et confirmez le paiement\n3. Revenez et cliquez sur «Vérifier le paiement»",
+  "billing_paypal_approve": "💳 Approuver sur PayPal",
+  "billing_paypal_check": "🔄 Vérifier le paiement",
+  "billing_paypal_pending": "⏳ <b>En attente du paiement...</b>\n\nVeuillez approuver le paiement sur PayPal, puis cliquez sur «Vérifier le paiement».",
+  "billing_paypal_success": "✅ <b>Paiement reçu!</b>\n\nForfait <b>{plan}</b> activé!\nMerci pour votre soutien! 🙏",
+  "billing_paypal_error": "❌ Paiement échoué ou annulé. Veuillez réessayer.",
+  "billing_generic_error": "❌ Quelque chose s'est mal passé. Veuillez réessayer plus tard.",
+  "admin_btn_payment": "💳 Méthodes de paiement",
+  "admin_payment_title": "💳 <b>Visibilité des méthodes de paiement</b>\n\nActivez/désactivez les méthodes de paiement visibles :\n\nAppuyez sur un bouton pour activer/désactiver.",
+  "admin_payment_error": "❌ Échec de la mise à jour des paramètres de paiement. Réessayez."
 }

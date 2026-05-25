@@ -9,6 +9,7 @@ import pytest
 from keyboards.inline_kb import (
     main_menu_reply_kb, main_menu_kb, change_lang_kb, upgrade_kb,
     back_main_kb, translate_result_kb, popular_langs_kb, ui_lang_kb,
+    admin_menu_kb, admin_payment_kb, billing_methods_kb,
 )
 from aiogram.types import (
     InlineKeyboardMarkup, InlineKeyboardButton,
@@ -86,9 +87,9 @@ class TestUpgradeKb:
         assert any("Invite" in t or "друга" in t for t in texts)  # referral
         assert any("Back" in t or "Назад" in t for t in texts)
 
-    def test_upgrade_kb_has_three_rows(self):
+    def test_upgrade_kb_has_five_rows(self):
         kb = upgrade_kb("en")
-        assert len(kb.inline_keyboard) == 3
+        assert len(kb.inline_keyboard) == 5
 
 
 class TestBackMainKb:
@@ -112,6 +113,75 @@ class TestTranslateResultKb:
         cb_datas = [btn.callback_data for row in kb.inline_keyboard for btn in row]
         assert any("retranslate" in d for d in cb_datas)
         assert any("dismiss" in d for d in cb_datas)
+
+
+class TestAdminMenuKb:
+    """Tests for admin_menu_kb()."""
+
+    def test_admin_menu_has_three_buttons(self):
+        kb = admin_menu_kb("en")
+        total = sum(len(row) for row in kb.inline_keyboard)
+        assert total == 3  # Stats, Payment Methods, Back
+
+    def test_admin_menu_has_stats_and_payment_callbacks(self):
+        kb = admin_menu_kb("en")
+        cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row]
+        assert "admin_stats" in cbs
+        assert "admin_payment" in cbs
+        assert "back_main" in cbs
+
+
+class TestAdminPaymentKb:
+    """Tests for admin_payment_kb()."""
+
+    def test_admin_payment_has_four_buttons(self):
+        config = {"stars": True, "kofi": True, "paypal": True}
+        kb = admin_payment_kb(config, "en")
+        total = sum(len(row) for row in kb.inline_keyboard)
+        assert total == 4  # 3 methods + Back
+
+    def test_admin_payment_shows_checkmarks(self):
+        config = {"stars": True, "kofi": False, "paypal": True}
+        kb = admin_payment_kb(config, "en")
+        texts = [btn.text for row in kb.inline_keyboard for btn in row]
+        assert any("Stars ✅" in t for t in texts)
+        assert any("Ko-fi ❌" in t for t in texts)
+        assert any("PayPal ✅" in t for t in texts)
+
+    def test_admin_payment_toggle_callbacks(self):
+        config = {"stars": True, "kofi": True, "paypal": True}
+        kb = admin_payment_kb(config, "en")
+        cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row]
+        assert "admin_toggle:stars" in cbs
+        assert "admin_toggle:kofi" in cbs
+        assert "admin_toggle:paypal" in cbs
+        assert "admin_back" in cbs
+
+
+class TestBillingMethodsKb:
+    """Tests for billing_methods_kb()."""
+
+    def test_all_visible_by_default(self):
+        kb = billing_methods_kb("starter", "en")
+        total = sum(len(row) for row in kb.inline_keyboard)
+        assert total == 4  # Stars, Ko-fi, PayPal, Back
+
+    def test_filter_methods_with_visible_param(self):
+        kb = billing_methods_kb("pro", "en", visible={"stars": True, "kofi": False, "paypal": False})
+        texts = [btn.text for row in kb.inline_keyboard for btn in row]
+        assert any("Stars" in t for t in texts)
+        assert not any("Ko-fi" in t for t in texts)
+        assert not any("PayPal" in t for t in texts)
+
+    def test_all_hidden_except_back(self):
+        kb = billing_methods_kb("starter", "en", visible={"stars": False, "kofi": False, "paypal": False})
+        total = sum(len(row) for row in kb.inline_keyboard)
+        assert total == 1  # Only Back
+
+    def test_back_button_always_present(self):
+        kb = billing_methods_kb("starter", "en", visible={"stars": False, "kofi": False, "paypal": False})
+        texts = [btn.text for row in kb.inline_keyboard for btn in row]
+        assert any("Back" in t or "Назад" in t for t in texts)
 
 
 class TestPopularLangsKb:

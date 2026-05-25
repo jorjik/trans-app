@@ -102,5 +102,21 @@
   "admin_no_stats": "❌ Statistiken konnten nicht abgerufen werden. API möglicherweise nicht verfügbar.",
   "admin_access_denied": "⛔ Zugriff verweigert.",
   "admin_loading": "⏳ Laden...",
-  "admin_paid_percent": "Bezahlt: <b>{pct}%</b> ({count} Nutzer)"
+  "admin_paid_percent": "Bezahlt: <b>{pct}%</b> ({count} Nutzer)",
+  "billing_choose_method": "Wählen Sie eine Zahlungsmethode für <b>{plan}</b> ({price_stars} ⭐):",
+  "billing_method_stars": "⭐ Telegram Stars",
+  "billing_method_kofi": "☕ Ko-fi",
+  "billing_method_paypal": "💳 PayPal",
+  "billing_kofi_instructions": "☕ <b>Zahlung mit Ko-fi</b>\n\nTarif: <b>{plan}</b>\nBetrag: <b>{amount} {currency}</b>\n\n1. Klicken Sie auf den Button unten\n2. Geben Sie den Betrag <b>{amount}</b> {currency} ein\n3. Geben Sie im Nachrichtenfeld den Code ein: <code>{code}</code>\n4. Schließen Sie die Zahlung ab\n\nNach der Zahlung wird der Tarif automatisch aktiviert.",
+  "billing_kofi_open": "☕ Ko-fi öffnen",
+  "billing_paypal_instructions": "💳 <b>Zahlung mit PayPal</b>\n\nTarif: <b>{plan}</b>\nBetrag: <b>{amount} {currency}</b>\n\n1. Klicken Sie auf «In PayPal bestätigen»\n2. Melden Sie sich an und bestätigen Sie die Zahlung\n3. Kommen Sie zurück und klicken Sie auf «Zahlung prüfen»",
+  "billing_paypal_approve": "💳 In PayPal bestätigen",
+  "billing_paypal_check": "🔄 Zahlung prüfen",
+  "billing_paypal_pending": "⏳ <b>Warte auf Zahlung...</b>\n\nBitte bestätigen Sie die Zahlung in PayPal und klicken Sie dann auf «Zahlung prüfen».",
+  "billing_paypal_success": "✅ <b>Zahlung erhalten!</b>\n\nTarif <b>{plan}</b> aktiviert!\nVielen Dank für Ihre Unterstützung! 🙏",
+  "billing_paypal_error": "❌ Zahlung fehlgeschlagen oder abgebrochen. Bitte versuchen Sie es erneut.",
+  "billing_generic_error": "❌ Etwas ist schiefgelaufen. Bitte versuchen Sie es später erneut.",
+  "admin_btn_payment": "💳 Zahlungsmethoden",
+  "admin_payment_title": "💳 <b>Sichtbarkeit der Zahlungsmethoden</b>\n\nLege fest, welche Zahlungsmethoden Benutzer sehen:\n\nTippe auf einen Knopf zum Ein-/Ausschalten.",
+  "admin_payment_error": "❌ Zahlungseinstellungen konnten nicht aktualisiert werden. Versuche es erneut."
 }

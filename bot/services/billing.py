@@ -1,15 +1,17 @@
-"""Telegram Stars — счета и активация тарифа в боте."""
+"""Telegram Stars, Ko-fi, PayPal — счета и активация тарифов."""
 
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from typing import Any, Optional
 
 import aiohttp
 from aiogram import Bot
 from aiogram.types import LabeledPrice, Message
 
 from config import settings
+from services.api_client import _bot_secret_headers, _api_url
 
 log = logging.getLogger(__name__)
 
@@ -124,3 +126,92 @@ async def notify_api_stars_paid(
         log.exception("API Stars sync error tg=%s", telegram_id)
 
     return False
+
+
+# ── Ko-fi (через internal API) ────────────────────────────────────────────────
+
+async def create_kofi_intent(telegram_id: int, plan_id: str) -> dict[str, Any] | None:
+    """Создаёт платёжное намерение Ko-fi через internal API."""
+    if not settings.api_url:
+        return None
+
+    url = _api_url("/internal/payment/intent")
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                url,
+                json={"telegram_id": telegram_id, "plan_id": plan_id, "payment_method": "kofi"},
+                headers=_bot_secret_headers(),
+                timeout=15,
+            ) as resp:
+                if resp.status in (200, 201):
+                    return await resp.json()
+                log.warning("API kofi intent failed status=%s", resp.status)
+    except Exception:
+        log.exception("API kofi intent error")
+    return None
+
+
+# ── PayPal (через internal API) ────────────────────────────────────────────────
+
+async def create_paypal_order(telegram_id: int, plan_id: str) -> dict[str, Any] | None:
+    if not settings.api_url:
+        return None
+
+    url = _api_url("/internal/payment/paypal-create")
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                url,
+                json={"telegram_id": telegram_id, "plan_id": plan_id, "payment_method": "paypal"},
+                headers=_bot_secret_headers(),
+                timeout=15,
+            ) as resp:
+                if resp.status in (200, 201):
+                    return await resp.json()
+                log.warning("API paypal create order failed status=%s", resp.status)
+    except Exception:
+        log.exception("API paypal create order error")
+    return None
+
+
+async def capture_paypal_order(telegram_id: int, order_id: str) -> dict[str, Any] | None:
+    if not settings.api_url:
+        return None
+
+    url = _api_url(f"/internal/payment/paypal-capture/{order_id}")
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                url,
+                json={"telegram_id": telegram_id, "order_id": order_id},
+                headers=_bot_secret_headers(),
+                timeout=15,
+            ) as resp:
+                if resp.status in (200, 201):
+                    return await resp.json()
+                log.warning("API paypal capture failed status=%s", resp.status)
+    except Exception:
+        log.exception("API paypal capture error")
+    return None
+
+
+async def get_paypal_order_status(telegram_id: int, order_id: str) -> dict[str, Any] | None:
+    if not settings.api_url:
+        return None
+
+    url = _api_url(f"/internal/payment/paypal-status/{order_id}")
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                url,
+                json={"telegram_id": telegram_id, "order_id": order_id},
+                headers=_bot_secret_headers(),
+                timeout=10,
+            ) as resp:
+                if resp.status in (200, 201):
+                    return await resp.json()
+                log.warning("API paypal status failed status=%s", resp.status)
+    except Exception:
+        log.exception("API paypal status error")
+    return None

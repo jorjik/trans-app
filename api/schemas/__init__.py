@@ -143,7 +143,7 @@ class PlansListResponse(BaseModel):
 
 class CheckoutRequest(BaseModel):
     plan_id: str
-    payment_method: str = Field(..., pattern="^(telegram_stars|stripe|yookassa)$")
+    payment_method: str = Field(..., pattern="^(telegram_stars|stripe|yookassa|kofi|paypal)$")
 
 
 class CheckoutResponse(BaseModel):

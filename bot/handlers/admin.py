@@ -10,7 +10,7 @@ from aiogram.types import Message, CallbackQuery
 from config import settings
 from services.storage import get_user
 from utils.i18n import t
-from keyboards.inline_kb import admin_menu_kb, back_main_kb
+from keyboards.inline_kb import admin_menu_kb, admin_payment_kb, back_main_kb
 
 logger = logging.getLogger(__name__)
 router = Router(name="admin")
@@ -120,6 +120,102 @@ async def cb_admin_stats(callback: CallbackQuery) -> None:
     await callback.message.edit_text(
         text,
         reply_markup=admin_menu_kb(lang),
+        parse_mode="HTML",
+    )
+
+
+async def _fetch_payment_config() -> dict | None:
+    """Запрашивает конфиг видимости способов оплаты из API."""
+    if not settings.api_url:
+        return None
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f"{settings.api_url}/admin/payment-config",
+                headers={"X-Bot-Secret": settings.bot_internal_secret},
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
+                if resp.status == 200:
+                    return await resp.json()
+                logger.warning("admin/payment-config returned %s", resp.status)
+                return None
+    except Exception as e:
+        logger.warning("admin/payment-config failed: %s", e)
+        return None
+
+
+async def _toggle_payment_method(method: str, visible: bool) -> dict | None:
+    """Включает/выключает способ оплаты через API."""
+    if not settings.api_url:
+        return None
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{settings.api_url}/admin/payment-config",
+                headers={"X-Bot-Secret": settings.bot_internal_secret},
+                json={"method": method, "visible": visible},
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
+                if resp.status == 200:
+                    return await resp.json()
+                logger.warning("admin/payment-config POST returned %s", resp.status)
+                return None
+    except Exception as e:
+        logger.warning("admin/payment-config POST failed: %s", e)
+        return None
+
+
+@router.callback_query(F.data == "admin_payment")
+async def cb_admin_payment(callback: CallbackQuery) -> None:
+    """Показывает настройки видимости способов оплаты."""
+    if not _is_admin(callback.from_user.id):
+        return
+    await callback.answer()
+    user = await get_user(callback.from_user.id)
+
+    config = await _fetch_payment_config()
+    if not config:
+        config = {"stars": True, "kofi": True, "paypal": True}
+
+    await callback.message.edit_text(
+        t("admin_payment_title", user.ui_language),
+        reply_markup=admin_payment_kb(config, user.ui_language),
+        parse_mode="HTML",
+    )
+
+
+@router.callback_query(F.data.startswith("admin_toggle:"))
+async def cb_admin_toggle_method(callback: CallbackQuery) -> None:
+    """Включает/выключает способ оплаты."""
+    if not _is_admin(callback.from_user.id):
+        return
+    await callback.answer()
+    user = await get_user(callback.from_user.id)
+
+    method = callback.data.split(":", 1)[1]
+    if method not in ("stars", "kofi", "paypal"):
+        return
+
+    # Fetch current config
+    config = await _fetch_payment_config()
+    if not config:
+        config = {"stars": True, "kofi": True, "paypal": True}
+
+    # Toggle
+    new_visible = not config.get(method, True)
+
+    updated = await _toggle_payment_method(method, new_visible)
+    if not updated:
+        await callback.message.edit_text(
+            t("admin_payment_error", user.ui_language),
+            reply_markup=admin_payment_kb(config, user.ui_language),
+            parse_mode="HTML",
+        )
+        return
+
+    await callback.message.edit_text(
+        t("admin_payment_title", user.ui_language),
+        reply_markup=admin_payment_kb(updated, user.ui_language),
         parse_mode="HTML",
     )
 
