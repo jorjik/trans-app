@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 revision: str = "20260521_0001"
-down_revision: Union[str, None] = "20260520_0002_fake_merge"
+down_revision: Union[str, None] = "20260520_0002"
 branch_labels: Union[str, None] = None
 depends_on: Union[str, None] = None
 

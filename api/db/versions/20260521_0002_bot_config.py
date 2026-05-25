@@ -32,7 +32,7 @@ def upgrade() -> None:
     op.execute(
         sa.text(
             "INSERT INTO bot_config (key, value) "
-            "VALUES ('payment_methods_visible', '{\"stars\": true, \"kofi\": true, \"paypal\": false}') 
+            "VALUES ('payment_methods_visible', '{\"stars\": true, \"kofi\": true, \"paypal\": false}') "
             "ON CONFLICT (key) DO NOTHING"
         )
     )

@@ -216,7 +216,7 @@ async def internal_create_payment_intent(
     from datetime import datetime, timezone, timedelta
     from models import PaymentIntent, User
     from services.kofi import amount_for_plan as kofi_amount_for_plan
-    from api.routers.kofi import generate_kofi_code
+    from routers.kofi import generate_kofi_code
 
     user = await _get_or_create_user(db, body.telegram_id)
 
