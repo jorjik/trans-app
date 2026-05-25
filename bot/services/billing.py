@@ -130,6 +130,30 @@ async def notify_api_stars_paid(
 
 # ── Ko-fi (через internal API) ────────────────────────────────────────────────
 
+# ── Monobank (через internal API) ─────────────────────────────────────────────
+
+async def create_monobank_intent(telegram_id: int, plan_id: str) -> dict[str, Any] | None:
+    """Создаёт платёжное намерение Monobank через internal API."""
+    if not settings.api_url:
+        return None
+
+    url = _api_url("/internal/payment/intent")
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                url,
+                json={"telegram_id": telegram_id, "plan_id": plan_id, "payment_method": "monobank"},
+                headers=_bot_secret_headers(),
+                timeout=15,
+            ) as resp:
+                if resp.status in (200, 201):
+                    return await resp.json()
+                log.warning("API monobank intent failed status=%s", resp.status)
+    except Exception:
+        log.exception("API monobank intent error")
+    return None
+
+
 async def create_kofi_intent(telegram_id: int, plan_id: str) -> dict[str, Any] | None:
     """Создаёт платёжное намерение Ko-fi через internal API."""
     if not settings.api_url:

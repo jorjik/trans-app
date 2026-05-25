@@ -14,3 +14,4 @@ python-dotenv==1.0.1
 deep-translator==1.11.4
 langdetect==1.0.9
 tenacity==9.0.0
+ecdsa==0.19.1

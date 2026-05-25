@@ -11,6 +11,7 @@ from keyboards.inline_kb import (
     billing_methods_kb,
     kofi_payment_kb,
     paypal_payment_kb,
+    monobank_payment_kb,
 )
 from services.billing import (
     get_plan,
@@ -18,6 +19,7 @@ from services.billing import (
     parse_payload,
     start_checkout,
     create_kofi_intent,
+    create_monobank_intent,
     create_paypal_order,
     capture_paypal_order,
     get_paypal_order_status,
@@ -29,7 +31,7 @@ log = logging.getLogger(__name__)
 router = Router(name="billing")
 
 
-default_visible = {"stars": True, "kofi": True, "paypal": True}
+default_visible = {"stars": True, "kofi": True, "paypal": False, "monobank": False}
 
 
 async def _get_visible_payment_methods() -> dict:
@@ -111,6 +113,41 @@ async def cb_pay_kofi(callback: CallbackQuery) -> None:
         t("billing_kofi_instructions", user.ui_language,
           plan=plan_name, amount=amount, currency=currency, code=code),
         reply_markup=kofi_payment_kb(page_url, user.ui_language),
+        parse_mode="HTML",
+    )
+
+
+@router.callback_query(F.data.startswith("pay_monobank:"))
+async def cb_pay_monobank(callback: CallbackQuery) -> None:
+    """Оплата через Monobank."""
+    plan_id = callback.data.split(":", 1)[1]
+    user = await get_user(callback.from_user.id)
+    await callback.answer()
+
+    result = await create_monobank_intent(callback.from_user.id, plan_id)
+    if not result:
+        await callback.message.edit_text(
+            t("billing_generic_error", user.ui_language),
+        )
+        return
+
+    page_url = result.get("page_url", "")
+    amount = result.get("amount", "0.00")
+    currency = result.get("currency", "UAH")
+
+    if not page_url:
+        await callback.message.edit_text(
+            t("billing_generic_error", user.ui_language),
+        )
+        return
+
+    plan = get_plan(plan_id)
+    plan_name = plan.name if plan else plan_id.capitalize()
+
+    await callback.message.edit_text(
+        t("billing_monobank_instructions", user.ui_language,
+          plan=plan_name, amount=amount, currency=currency),
+        reply_markup=monobank_payment_kb(page_url, user.ui_language),
         parse_mode="HTML",
     )
 

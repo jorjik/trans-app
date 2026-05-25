@@ -76,6 +76,12 @@ class Settings(BaseSettings):
     paypal_currency: str = Field("USD", alias="PAYPAL_CURRENCY")
     paypal_amount_per_star: float = Field(0.02, alias="PAYPAL_AMOUNT_PER_STAR")
 
+    # Monobank (Acquiring API)
+    monobank_token: Optional[str] = Field(None, alias="MONOBANK_TOKEN")
+    monobank_currency: int = Field(980, alias="MONOBANK_CURRENCY")  # 980 = UAH
+    monobank_amount_per_star: float = Field(0.02, alias="MONOBANK_AMOUNT_PER_STAR")
+    monobank_webhook_url: Optional[str] = Field(None, alias="MONOBANK_WEBHOOK_URL")
+
     @model_validator(mode="after")
     def _validate_production_secrets(self) -> "Settings":
         if self.env != "production":

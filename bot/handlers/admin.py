@@ -175,7 +175,7 @@ async def cb_admin_payment(callback: CallbackQuery) -> None:
 
     config = await _fetch_payment_config()
     if not config:
-        config = {"stars": True, "kofi": True, "paypal": True}
+        config = {"stars": True, "kofi": True, "paypal": False, "monobank": False}
 
     await callback.message.edit_text(
         t("admin_payment_title", user.ui_language),
@@ -193,13 +193,13 @@ async def cb_admin_toggle_method(callback: CallbackQuery) -> None:
     user = await get_user(callback.from_user.id)
 
     method = callback.data.split(":", 1)[1]
-    if method not in ("stars", "kofi", "paypal"):
+    if method not in ("stars", "kofi", "paypal", "monobank"):
         return
 
     # Fetch current config
     config = await _fetch_payment_config()
     if not config:
-        config = {"stars": True, "kofi": True, "paypal": True}
+        config = {"stars": True, "kofi": True, "paypal": False, "monobank": False}
 
     # Toggle
     new_visible = not config.get(method, True)

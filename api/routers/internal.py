@@ -24,6 +24,20 @@ async def verify_bot_secret(x_bot_secret: str = Header(...)) -> None:
         raise HTTPException(status_code=403, detail="Forbidden")
 
 
+PLAN_DESTINATIONS = {
+    "starter": "TransApp Starter",
+    "pro": "TransApp Pro",
+    "business": "TransApp Business",
+}
+
+
+def _get_api_base_url() -> str:
+    """Базовый URL API для вебхуков."""
+    if settings.monobank_webhook_url:
+        return settings.monobank_webhook_url.rstrip("/").replace("/webhook/monobank", "")
+    return "https://api.transapp.dev"
+
+
 # Канонические коды UI-языков
 _UI_LANGS = ("en", "ru", "uk", "de", "fr", "es", "pl", "it", "pt", "tr")
 
@@ -231,6 +245,51 @@ async def internal_create_payment_intent(
             "amount": amount,
             "currency": settings.kofi_currency,
             "page_url": settings.kofi_page_url or "https://ko-fi.com",
+        }
+
+    if body.payment_method == "monobank":
+        from services.monobank import MonobankClient, amount_for_plan as mono_amount_for_plan
+
+        amount = mono_amount_for_plan(price_stars, settings.monobank_amount_per_star)
+        reference = f"user_{user.id}_plan_{body.plan_id}"
+        destination = PLAN_DESTINATIONS.get(body.plan_id, "TransApp Subscription")
+        redirect_url = f"https://t.me/transapp_bot"  # fallback redirect
+        webhook_url = f"{_get_api_base_url()}/webhook/monobank"
+
+        client = MonobankClient()
+        invoice = await client.create_invoice(
+            amount=amount,
+            reference=reference,
+            destination=destination,
+            redirect_url=redirect_url,
+            webhook_url=webhook_url,
+            validity=3600,
+        )
+
+        if not invoice:
+            return {"error": "monobank_error", "detail": client.last_error or "Failed to create invoice"}
+
+        invoice_id = invoice.get("invoiceId", "")
+        page_url = invoice.get("pageUrl", "")
+
+        db.add(PaymentIntent(
+            user_id=user.id,
+            provider="monobank",
+            plan_id=body.plan_id,
+            code=invoice_id,
+            amount=amount,
+            currency="UAH",
+            external_id=invoice_id,
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        ))
+        await db.flush()
+
+        return {
+            "provider": "monobank",
+            "invoice_id": invoice_id,
+            "page_url": page_url,
+            "amount": amount,
+            "currency": "UAH",
         }
 
     return {"error": "unsupported_payment_method"}

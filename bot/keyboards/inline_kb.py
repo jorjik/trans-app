@@ -87,7 +87,7 @@ def billing_methods_kb(
     visible: dict | None = None,
 ) -> InlineKeyboardMarkup:
     """Выбор способа оплаты для тарифного плана.
-    Параметр visible — словарь вида {"stars": True, "kofi": True, "paypal": True}.
+    Параметр visible — словарь вида {"stars": True, "kofi": True, "paypal": True, "monobank": True}.
     Если None, показывает всё.
     """
     builder = InlineKeyboardBuilder()
@@ -95,8 +95,22 @@ def billing_methods_kb(
         builder.button(text=t("billing_method_stars", ui_lang), callback_data=f"pay_stars:{plan_id}")
     if visible is None or visible.get("kofi", True):
         builder.button(text=t("billing_method_kofi", ui_lang), callback_data=f"pay_kofi:{plan_id}")
+    if visible is None or visible.get("monobank", False):
+        builder.button(text=t("billing_method_monobank", ui_lang), callback_data=f"pay_monobank:{plan_id}")
     if visible is None or visible.get("paypal", True):
         builder.button(text=t("billing_method_paypal", ui_lang), callback_data=f"pay_paypal:{plan_id}")
+    builder.button(text=t("btn_back", ui_lang), callback_data="quota")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def monobank_payment_kb(page_url: str, ui_lang: str = "ru") -> InlineKeyboardMarkup:
+    """Кнопка для оплаты через Monobank."""
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text=t("billing_monobank_open", ui_lang),
+        url=page_url,
+    )
     builder.button(text=t("btn_back", ui_lang), callback_data="quota")
     builder.adjust(1)
     return builder.as_markup()
@@ -181,7 +195,8 @@ def admin_payment_kb(config: dict, ui_lang: str = "ru") -> InlineKeyboardMarkup:
     methods = [
         ("stars", f"⭐ Stars {'✅' if config.get('stars', True) else '❌'}", "admin_toggle:stars"),
         ("kofi", f"☕ Ko-fi {'✅' if config.get('kofi', True) else '❌'}", "admin_toggle:kofi"),
-        ("paypal", f"💳 PayPal {'✅' if config.get('paypal', True) else '❌'}", "admin_toggle:paypal"),
+        ("paypal", f"💳 PayPal {'✅' if config.get('paypal', False) else '❌'}", "admin_toggle:paypal"),
+        ("monobank", f"🏦 Monobank {'✅' if config.get('monobank', False) else '❌'}", "admin_toggle:monobank"),
     ]
     for _, label, cb in methods:
         builder.button(text=label, callback_data=cb)

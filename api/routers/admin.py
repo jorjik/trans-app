@@ -151,11 +151,12 @@ async def get_admin_stats(
 class PaymentMethodsConfig(BaseModel):
     stars: bool = True
     kofi: bool = True
-    paypal: bool = True
+    paypal: bool = False
+    monobank: bool = False
 
 
 def _default_payment_config() -> dict:
-    return {"stars": True, "kofi": True, "paypal": True}
+    return {"stars": True, "kofi": True, "paypal": False, "monobank": False}
 
 
 @router.get(
@@ -177,7 +178,7 @@ async def get_payment_config(
 
 
 class PaymentConfigUpdate(BaseModel):
-    method: str  # "stars", "kofi", or "paypal"
+    method: str  # "stars", "kofi", "paypal", or "monobank"
     visible: bool
 
 
@@ -191,7 +192,7 @@ async def toggle_payment_method(
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Включает/выключает способ оплаты."""
-    if body.method not in ("stars", "kofi", "paypal"):
+    if body.method not in ("stars", "kofi", "paypal", "monobank"):
         raise HTTPException(status_code=400, detail="Invalid method")
 
     result = await db.execute(
