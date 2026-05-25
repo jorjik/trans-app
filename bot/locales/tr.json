@@ -118,5 +118,8 @@
   "billing_generic_error": "❌ Bir şeyler yanlış gitti. Lütfen daha sonra tekrar deneyin.",
   "admin_btn_payment": "💳 Ödeme Yöntemleri",
   "admin_payment_title": "💳 <b>Ödeme Yöntemi Görünürlüğü</b>\n\nKullanıcıların hangi ödeme yöntemlerini göreceğini ayarlayın:\n\nAçıp kapatmak için bir düğmeye dokunun.",
-  "admin_payment_error": "❌ Ödeme ayarları güncellenemedi. Tekrar deneyin."
+  "admin_payment_error": "❌ Ödeme ayarları güncellenemedi. Tekrar deneyin.",
+  "billing_method_monobank": "💳 Monobank",
+  "billing_monobank_instructions": "💳 <b>Monobank ile Öde</b>\\n\\nPlan: <b>{plan}</b>\\nTutar: <b>{amount} {currency}</b>\\n\\n1. Aşağıdaki butona tıklayın\\n2. Monobank'a yönlendirileceksiniz\\n3. Ödemeyi onaylayın\\n4. Geri gelin — plan otomatik olarak aktifleşecek",
+  "billing_monobank_open": "💳 Monobank'ı Aç"
 }

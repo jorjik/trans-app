@@ -22,7 +22,8 @@ from schemas import (
 from services.auth import get_current_user
 from services.billing_plans import PLAN_CATALOG
 from services.constants import PLANS
-from services.kofi import amount_for_plan as kofi_amount_for_plan, generate_kofi_code as _gen_kofi_code
+from services.kofi import amount_for_plan as kofi_amount_for_plan
+from routers.kofi import generate_kofi_code as _gen_kofi_code
 from services.paypal import PayPalClient
 from services.quota import get_or_create_quota, upgrade_plan
 from services.telegram_stars import create_stars_invoice_link

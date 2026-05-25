@@ -118,5 +118,8 @@
   "billing_generic_error": "❌ Algo salió mal. Intente de nuevo más tarde.",
   "admin_btn_payment": "💳 Métodos de pago",
   "admin_payment_title": "💳 <b>Visibilidad de métodos de pago</b>\n\nActiva/desactiva qué métodos ven los usuarios:\n\nToca un botón para activar/desactivar.",
-  "admin_payment_error": "❌ No se pudieron actualizar los ajustes de pago. Intente de nuevo."
+  "admin_payment_error": "❌ No se pudieron actualizar los ajustes de pago. Intente de nuevo.",
+  "billing_method_monobank": "💳 Monobank",
+  "billing_monobank_instructions": "💳 <b>Pagar con Monobank</b>\\n\\nPlan: <b>{plan}</b>\\nMonto: <b>{amount} {currency}</b>\\n\\n1. Haga clic en el botón de abajo\\n2. Será redirigido a Monobank\\n3. Confirme el pago\\n4. Vuelva — el plan se activará automáticamente",
+  "billing_monobank_open": "💳 Abrir Monobank"
 }

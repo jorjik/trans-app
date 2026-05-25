@@ -93,16 +93,6 @@ async def handle_kofi_webhook(request: Request, db: AsyncSession = Depends(get_d
         log.info("Ko-fi intent %s already %s", code, intent.status)
         return {"ok": True, "status": "already_processed"}
 
-    # Проверяем сумму
-    expected_amount = ""
-    try:
-        from services.kofi import amount_for_plan
-        expected_amount = amount_for_plan(
-            settings.__dict__.get("kofi_amount_per_star", 0.02),
-        )
-    except Exception:
-        pass
-
     # Подтверждаем платёж
     intent.status = "paid"
     intent.external_id = payment.provider_payment_id

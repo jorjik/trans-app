@@ -134,27 +134,29 @@ class TestAdminMenuKb:
 class TestAdminPaymentKb:
     """Tests for admin_payment_kb()."""
 
-    def test_admin_payment_has_four_buttons(self):
-        config = {"stars": True, "kofi": True, "paypal": True}
+    def test_admin_payment_has_five_buttons(self):
+        config = {"stars": True, "kofi": True, "paypal": True, "monobank": False}
         kb = admin_payment_kb(config, "en")
         total = sum(len(row) for row in kb.inline_keyboard)
-        assert total == 4  # 3 methods + Back
+        assert total == 5  # 4 methods + Back
 
     def test_admin_payment_shows_checkmarks(self):
-        config = {"stars": True, "kofi": False, "paypal": True}
+        config = {"stars": True, "kofi": False, "paypal": True, "monobank": False}
         kb = admin_payment_kb(config, "en")
         texts = [btn.text for row in kb.inline_keyboard for btn in row]
         assert any("Stars ✅" in t for t in texts)
         assert any("Ko-fi ❌" in t for t in texts)
         assert any("PayPal ✅" in t for t in texts)
+        assert any("Monobank ❌" in t for t in texts)
 
     def test_admin_payment_toggle_callbacks(self):
-        config = {"stars": True, "kofi": True, "paypal": True}
+        config = {"stars": True, "kofi": True, "paypal": True, "monobank": False}
         kb = admin_payment_kb(config, "en")
         cbs = [btn.callback_data for row in kb.inline_keyboard for btn in row]
         assert "admin_toggle:stars" in cbs
         assert "admin_toggle:kofi" in cbs
         assert "admin_toggle:paypal" in cbs
+        assert "admin_toggle:monobank" in cbs
         assert "admin_back" in cbs
 
 
@@ -164,17 +166,18 @@ class TestBillingMethodsKb:
     def test_all_visible_by_default(self):
         kb = billing_methods_kb("starter", "en")
         total = sum(len(row) for row in kb.inline_keyboard)
-        assert total == 4  # Stars, Ko-fi, PayPal, Back
+        assert total == 5  # Stars, Ko-fi, Monobank, PayPal, Back
 
     def test_filter_methods_with_visible_param(self):
-        kb = billing_methods_kb("pro", "en", visible={"stars": True, "kofi": False, "paypal": False})
+        kb = billing_methods_kb("pro", "en", visible={"stars": True, "kofi": False, "paypal": False, "monobank": False})
         texts = [btn.text for row in kb.inline_keyboard for btn in row]
         assert any("Stars" in t for t in texts)
         assert not any("Ko-fi" in t for t in texts)
+        assert not any("Monobank" in t for t in texts)
         assert not any("PayPal" in t for t in texts)
 
     def test_all_hidden_except_back(self):
-        kb = billing_methods_kb("starter", "en", visible={"stars": False, "kofi": False, "paypal": False})
+        kb = billing_methods_kb("starter", "en", visible={"stars": False, "kofi": False, "paypal": False, "monobank": False})
         total = sum(len(row) for row in kb.inline_keyboard)
         assert total == 1  # Only Back
 

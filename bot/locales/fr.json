@@ -118,5 +118,8 @@
   "billing_generic_error": "❌ Quelque chose s'est mal passé. Veuillez réessayer plus tard.",
   "admin_btn_payment": "💳 Méthodes de paiement",
   "admin_payment_title": "💳 <b>Visibilité des méthodes de paiement</b>\n\nActivez/désactivez les méthodes de paiement visibles :\n\nAppuyez sur un bouton pour activer/désactiver.",
-  "admin_payment_error": "❌ Échec de la mise à jour des paramètres de paiement. Réessayez."
+  "admin_payment_error": "❌ Échec de la mise à jour des paramètres de paiement. Réessayez.",
+  "billing_method_monobank": "💳 Monobank",
+  "billing_monobank_instructions": "💳 <b>Payer avec Monobank</b>\\n\\nForfait: <b>{plan}</b>\\nMontant: <b>{amount} {currency}</b>\\n\\n1. Cliquez sur le bouton ci-dessous\\n2. Vous serez redirigé vers Monobank\\n3. Confirmez le paiement\\n4. Revenez — le forfait sera activé automatiquement",
+  "billing_monobank_open": "💳 Ouvrir Monobank"
 }

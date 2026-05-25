@@ -3,6 +3,7 @@
 import asyncio
 import hashlib
 import logging
+from decimal import Decimal
 from typing import Any, Optional
 
 import aiohttp
@@ -19,18 +20,6 @@ CURRENCIES = {
     "EUR": 978,
 }
 
-PLAN_PRICES: dict[str, int] = {
-    "starter": 250,
-    "pro": 750,
-    "business": 2500,
-}
-
-PLAN_NAMES: dict[str, str] = {
-    "starter": "TransApp Starter",
-    "pro": "TransApp Pro",
-    "business": "TransApp Business",
-}
-
 
 def _amount_to_kopiykas(amount_str: str) -> int:
     """Переводить суму у гривнях (12.34) в копійки (1234)."""
@@ -40,9 +29,9 @@ def _amount_to_kopiykas(amount_str: str) -> int:
     return int(parts[0]) * 100 + int(parts[1].ljust(2, "0")[:2])
 
 
-def amount_for_plan(price_stars: int, amount_per_star: float) -> str:
+def amount_for_plan(price_stars: int, amount_per_star: str | float) -> str:
     """Розраховує суму: stars * amount_per_star, повертає у вигляді рядка."""
-    total = price_stars * amount_per_star
+    total = Decimal(str(price_stars)) * Decimal(str(amount_per_star))
     return f"{total:.2f}"
 
 

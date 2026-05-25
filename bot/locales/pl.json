@@ -118,5 +118,8 @@
   "billing_generic_error": "❌ Coś poszło nie tak. Spróbuj ponownie później.",
   "admin_btn_payment": "💳 Metody płatności",
   "admin_payment_title": "💳 <b>Widoczność metod płatności</b>\n\nWłącz/wyłącz które metody płatności widzą użytkownicy:\n\nDotknij przycisk, aby włączyć/wyłączyć.",
-  "admin_payment_error": "❌ Nie udało się zaktualizować ustawień płatności. Spróbuj ponownie."
+  "admin_payment_error": "❌ Nie udało się zaktualizować ustawień płatności. Spróbuj ponownie.",
+  "billing_method_monobank": "💳 Monobank",
+  "billing_monobank_instructions": "💳 <b>Zapłać przez Monobank</b>\\n\\nPlan: <b>{plan}</b>\\nKwota: <b>{amount} {currency}</b>\\n\\n1. Kliknij przycisk poniżej\\n2. Zostaniesz przekierowany do Monobank\\n3. Potwierdź płatność\\n4. Wróć — plan aktywuje się automatycznie",
+  "billing_monobank_open": "💳 Otwórz Monobank"
 }

@@ -118,5 +118,8 @@
   "billing_generic_error": "❌ Etwas ist schiefgelaufen. Bitte versuchen Sie es später erneut.",
   "admin_btn_payment": "💳 Zahlungsmethoden",
   "admin_payment_title": "💳 <b>Sichtbarkeit der Zahlungsmethoden</b>\n\nLege fest, welche Zahlungsmethoden Benutzer sehen:\n\nTippe auf einen Knopf zum Ein-/Ausschalten.",
-  "admin_payment_error": "❌ Zahlungseinstellungen konnten nicht aktualisiert werden. Versuche es erneut."
+  "admin_payment_error": "❌ Zahlungseinstellungen konnten nicht aktualisiert werden. Versuche es erneut.",
+  "billing_method_monobank": "💳 Monobank",
+  "billing_monobank_instructions": "💳 <b>Zahlung mit Monobank</b>\\n\\nTarif: <b>{plan}</b>\\nBetrag: <b>{amount} {currency}</b>\\n\\n1. Klicken Sie auf den Button unten\\n2. Sie werden zu Monobank weitergeleitet\\n3. Bestätigen Sie die Zahlung\\n4. Kehren Sie zurück — der Tarif wird automatisch aktiviert",
+  "billing_monobank_open": "💳 Monobank öffnen"
 }
