@@ -5,15 +5,21 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 
 from utils.languages import get_lang_flag, get_lang_name, UI_LANGUAGES
 from utils.i18n import t
+from config import settings
 
 
-def main_menu_reply_kb(ui_lang: str = "ru") -> ReplyKeyboardMarkup:
+def main_menu_reply_kb(ui_lang: str = "ru", user_id: int | None = None) -> ReplyKeyboardMarkup:
     """Главное меню в нижней клавиатуре Telegram (reply keyboard)."""
     builder = ReplyKeyboardBuilder()
     builder.button(text=t("btn_how_to_use", ui_lang))
     builder.button(text=t("btn_change_lang", ui_lang))
     builder.button(text=t("btn_my_balance", ui_lang))
-    builder.adjust(2, 1)
+    # Кнопка /admin только для админов
+    buttons = 2
+    if user_id and user_id in settings.admin_tg_ids:
+        builder.button(text="⚙️ Admin")
+        buttons = 3
+    builder.adjust(buttons, 1)
     return builder.as_markup(resize_keyboard=True)
 
 
@@ -102,6 +108,15 @@ def popular_langs_kb(ui_lang: str = "ru", callback_prefix: str = "setlang") -> I
         builder.button(text=f"{flag} {name}", callback_data=f"{callback_prefix}:{code}")
     builder.button(text=t("btn_back", ui_lang), callback_data="change_lang")
     builder.adjust(3, 3, 3, 3, 3, 1, 1)
+    return builder.as_markup()
+
+
+def admin_menu_kb(ui_lang: str = "ru") -> InlineKeyboardMarkup:
+    """Админ-меню."""
+    builder = InlineKeyboardBuilder()
+    builder.button(text=t("admin_btn_stats", ui_lang), callback_data="admin_stats")
+    builder.button(text=t("btn_back", ui_lang), callback_data="back_main")
+    builder.adjust(1)
     return builder.as_markup()
 
 

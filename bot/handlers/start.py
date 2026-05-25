@@ -313,6 +313,14 @@ async def on_my_balance_button(message: Message) -> None:
     await cmd_quota(message)
 
 
+# ── Admin reply button ─────────────────────────────────────
+
+@router.message(F.text == "⚙️ Admin")
+async def on_admin_button(message: Message) -> None:
+    from handlers.admin import cmd_admin
+    await cmd_admin(message)
+
+
 @router.callback_query(F.data.startswith("set_ui_lang:"))
 async def cb_set_ui_lang(callback: CallbackQuery) -> None:
     code = callback.data.split(":")[1]
@@ -358,7 +366,7 @@ async def cb_set_ui_lang(callback: CallbackQuery) -> None:
             try:
                 await callback.message.answer(
                     "💡 " + t("reply_menu_hint", user.ui_language),
-                    reply_markup=main_menu_reply_kb(user.ui_language),
+                    reply_markup=main_menu_reply_kb(user.ui_language, user_id=callback.from_user.id),
                 )
             except Exception as e2:
                 logger.error("cb_set_ui_lang: reply kb failed: %s", e2, exc_info=True)

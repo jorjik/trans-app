@@ -1,4 +1,5 @@
-"""Deploy all locale and language changes to the production server."""
+"""Deploy admin panel + locale changes to production server."""
+
 import paramiko
 import os
 import glob
@@ -44,20 +45,36 @@ def put_file(local_rel, remote_rel):
 
 # === 1. Upload bot locale files ===
 print('=== 1. Uploading locale files ===')
-all_locales = ['en.json', 'ru.json', 'uk.json', 'de.json', 'fr.json', 'es.json', 'it.json', 'pt.json', 'pl.json', 'tr.json']
-for f in all_locales:
+for f in ['de.json', 'fr.json', 'es.json', 'it.json', 'pt.json', 'pl.json', 'tr.json']:
     put_file('bot/locales/' + f, 'bot/locales/' + f)
 
 # === 2. Upload bot Python files ===
 print()
 print('=== 2. Uploading bot Python files ===')
-for f in ['utils/languages.py', 'keyboards/inline_kb.py', 'handlers/start.py', 'handlers/admin.py', 'middlewares/throttle.py']:
+bot_files = [
+    'utils/languages.py',
+    'keyboards/inline_kb.py',
+    'handlers/__init__.py',
+    'handlers/start.py',
+    'handlers/admin.py',      # NEW
+    'middlewares/throttle.py',
+    'main.py',
+]
+for f in bot_files:
     put_file('bot/' + f, 'bot/' + f)
 
 # === 3. Upload API Python files ===
 print()
 print('=== 3. Uploading API Python files ===')
-for f in ['routers/internal.py', 'routers/admin.py', 'services/auth.py', 'services/user_service.py']:
+api_files = [
+    'routers/__init__.py',
+    'routers/internal.py',
+    'routers/admin.py',       # NEW
+    'services/auth.py',
+    'services/user_service.py',
+    'main.py',
+]
+for f in api_files:
     put_file('api/' + f, 'api/' + f)
 
 # === 4. Upload miniapp dist ===
@@ -82,16 +99,18 @@ print('=== 6. Restarting bot ===')
 out = run('cd /opt/trans-app && docker compose -f docker-compose.prod.yml up -d --no-deps bot 2>&1')
 print(out)
 
-# === 6. Restart API ===
+# === 7. Restart API (needs rebuild for the new admin router) ===
 print()
-print('=== 7. Restarting API ===')
+print('=== 7. Rebuilding and restarting API ===')
+out = run('cd /opt/trans-app && docker compose -f docker-compose.prod.yml build api 2>&1')
+print(out[-1500:] if len(out) > 1500 else out)
 out = run('cd /opt/trans-app && docker compose -f docker-compose.prod.yml up -d --no-deps api 2>&1')
 print(out)
 
-# === 7. Wait and verify ===
+# === 8. Wait and verify ===
 print()
-print('Waiting 10 seconds...')
-time.sleep(10)
+print('Waiting 15 seconds...')
+time.sleep(15)
 
 print()
 print('=== 8. Container status ===')
@@ -109,7 +128,14 @@ out = run('curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health 2
 print('  Health:', out)
 
 print()
-print('=== 11. API logs (last 3) ===')
+print('=== 11. API admin/stats test ===')
+out = run('curl -s http://localhost:8000/admin/stats 2>&1 | head -1')
+print('  Without secret:', out)
+out = run('curl -s -H "X-Bot-Secret: change-me-bot-secret" http://localhost:8000/admin/stats 2>&1')
+print('  With secret:', out)
+
+print()
+print('=== 12. API logs (last 3) ===')
 out = run('docker logs trans-app-api-1 2>&1 | tail -3')
 print(out)
 

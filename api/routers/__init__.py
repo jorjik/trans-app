@@ -1,3 +1,3 @@
-from routers import auth, translate, users, chats, stats, billing, webhook, internal
+from routers import auth, translate, users, chats, stats, billing, webhook, internal, admin
 
-__all__ = ["auth", "translate", "users", "chats", "stats", "billing", "webhook", "internal"]
+__all__ = ["auth", "translate", "users", "chats", "stats", "billing", "webhook", "internal", "admin"]
