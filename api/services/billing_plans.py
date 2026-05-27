@@ -18,7 +18,7 @@ PLAN_CATALOG: dict[str, PlanCatalogItem] = {
     "free": PlanCatalogItem(
         id="free",
         name="Free",
-        chars_per_month=50_000,
+        chars_per_month=25_000,
         price_usd=0.0,
         price_stars=0,
         max_auto_chats=2,

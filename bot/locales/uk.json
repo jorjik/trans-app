@@ -121,5 +121,9 @@
   "admin_payment_error": "❌ Не вдалося оновити налаштування оплати. Спробуйте ще раз.",
   "billing_method_monobank": "💳 Monobank",
   "billing_monobank_instructions": "💳 <b>Оплата через Monobank</b>\\n\\nТариф: <b>{plan}</b>\\nСума: <b>{amount} {currency}</b>\\n\\n1. Натисніть кнопку нижче\\n2. Вас буде перенаправлено в Monobank\\n3. Підтвердьте платіж\\n4. Поверніться — тариф активується автоматично",
-  "billing_monobank_open": "💳 Відкрити Monobank"
+  "billing_monobank_open": "💳 Відкрити Monobank",
+  "help_autotranslate_title": "Автопереклад чатів:",
+  "help_autotranslate_text": "Налаштуйте чати для автоматичного перекладу в Mini App",
+  "help_group_title": "Багатомовні групи:",
+  "help_group_text": "Адмін вмикає /group_translate для перекладу повідомлень учасників"
 }

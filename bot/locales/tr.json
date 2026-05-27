@@ -121,5 +121,9 @@
   "admin_payment_error": "❌ Ödeme ayarları güncellenemedi. Tekrar deneyin.",
   "billing_method_monobank": "💳 Monobank",
   "billing_monobank_instructions": "💳 <b>Monobank ile Öde</b>\\n\\nPlan: <b>{plan}</b>\\nTutar: <b>{amount} {currency}</b>\\n\\n1. Aşağıdaki butona tıklayın\\n2. Monobank'a yönlendirileceksiniz\\n3. Ödemeyi onaylayın\\n4. Geri gelin — plan otomatik olarak aktifleşecek",
-  "billing_monobank_open": "💳 Monobank'ı Aç"
+  "billing_monobank_open": "💳 Monobank'ı Aç",
+  "help_autotranslate_title": "Sohbetleri otomatik çevir:",
+  "help_autotranslate_text": "Mini App'de otomatik çeviri için sohbetleri ayarla",
+  "help_group_title": "Çok dilli gruplar:",
+  "help_group_text": "Admin /group_translate'i üye mesajlarını çevirmek için etkinleştirir"
 }

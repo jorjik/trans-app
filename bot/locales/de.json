@@ -121,5 +121,9 @@
   "admin_payment_error": "❌ Zahlungseinstellungen konnten nicht aktualisiert werden. Versuche es erneut.",
   "billing_method_monobank": "💳 Monobank",
   "billing_monobank_instructions": "💳 <b>Zahlung mit Monobank</b>\\n\\nTarif: <b>{plan}</b>\\nBetrag: <b>{amount} {currency}</b>\\n\\n1. Klicken Sie auf den Button unten\\n2. Sie werden zu Monobank weitergeleitet\\n3. Bestätigen Sie die Zahlung\\n4. Kehren Sie zurück — der Tarif wird automatisch aktiviert",
-  "billing_monobank_open": "💳 Monobank öffnen"
+  "billing_monobank_open": "💳 Monobank öffnen",
+  "help_autotranslate_title": "Chat-Aut übersetzung:",
+  "help_autotranslate_text": "Richten Sie in der Mini App Chats für automatische Übersetzung ein",
+  "help_group_title": "Mehrsprachige Gruppen:",
+  "help_group_text": "Admin aktiviert /group_translate für die Übersetzung von Nachrichten von Mitgliedern"
 }

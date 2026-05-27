@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     default_engine: str = Field("google_free", alias="DEFAULT_TRANSLATION_ENGINE")
 
     # Quotas
-    free_plan_chars: int = Field(50_000, alias="FREE_PLAN_CHARS")
+    free_plan_chars: int = Field(25_000, alias="FREE_PLAN_CHARS")
     referral_bonus_chars: int = Field(10_000, alias="REFERRAL_BONUS_CHARS")
 
     # Internal

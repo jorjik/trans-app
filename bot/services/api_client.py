@@ -25,9 +25,9 @@ class UserData:
     ui_language: str = ""
     favorite_langs: list[str] = field(default_factory=lambda: ["en", "de", "fr"])
     plan: str = "free"
-    chars_limit: int = 50_000
+    chars_limit: int = 25_000
     chars_used: int = 0
-    chars_remaining: int = 50_000
+    chars_remaining: int = 25_000
     reset_at: Optional[str] = None
 
     @property
@@ -128,11 +128,10 @@ async def get_user(telegram_id: int) -> UserData:
                     ui_language=data.get("ui_language", ""),
                     favorite_langs=data.get("favorite_langs", ["en", "de", "fr"]),
                     plan=data.get("plan", "free"),
-                    chars_limit=data.get("chars_limit", 50_000),
+chars_limit=data.get("chars_limit", 25_000),
                     chars_used=data.get("chars_used", 0),
-                    chars_remaining=data.get("chars_remaining", 50_000),
-                    reset_at=data.get("reset_at"),
-                )
+                    chars_remaining=data.get("chars_remaining", 25_000),
+                 )
                 _cache_set(telegram_id, user)
                 return user
             elif resp.status == 404:
@@ -175,9 +174,9 @@ async def deduct_chars(telegram_id: int, count: int) -> Optional[UserData]:
                     ui_language=data.get("ui_language", ""),
                     favorite_langs=data.get("favorite_langs", ["en", "de", "fr"]),
                     plan=data.get("plan", "free"),
-                    chars_limit=data.get("chars_limit", 50_000),
+                    chars_limit=data.get("chars_limit", 25_000),
                     chars_used=data.get("chars_used", 0),
-                    chars_remaining=data.get("chars_remaining", 50_000),
+                    chars_remaining=data.get("chars_remaining", 25_000),
                     reset_at=data.get("reset_at"),
                 )
                 _cache_set(telegram_id, user)

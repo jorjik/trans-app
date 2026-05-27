@@ -14,7 +14,7 @@ class PlanInfo:
 
 # Единый источник правды
 PLANS: dict[str, PlanInfo] = {
-    "free":     PlanInfo("free",     "Free",     50_000),
+    "free":     PlanInfo("free",     "Free",     25_000),
     "starter":  PlanInfo("starter",  "Starter",  500_000,   250),
     "pro":      PlanInfo("pro",      "Pro",      2_000_000, 750),
     "business": PlanInfo("business", "Business", 10_000_000, 2500),

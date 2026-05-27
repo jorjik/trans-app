@@ -1,3 +1,9 @@
+x-logging: &logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   db:
     image: postgres:16-alpine
@@ -15,6 +21,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    logging: *logging
     deploy:
       resources:
         limits:
@@ -33,6 +40,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    logging: *logging
     deploy:
       resources:
         limits:
@@ -55,6 +63,11 @@ services:
       - DATABASE_URL=postgresql+asyncpg://postgres:${DB_PASSWORD:-changeme}@db:5432/transapp
       - REDIS_URL=redis://redis:6379/0
       - ENV=production
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          memory: 256m
 
   bot:
     build:
@@ -63,12 +76,19 @@ services:
     restart: unless-stopped
     env_file: .env
     depends_on:
-      - api
-      - redis
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       - REDIS_URL=redis://redis:6379/0
       - BACKEND_API_URL=http://api:8000
       - ENV=production
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          memory: 256m
 
   miniapp:
     build:
@@ -78,10 +98,18 @@ services:
         VITE_API_URL: ${VITE_API_URL:-/api}
     restart: unless-stopped
     env_file: .env
+    depends_on:
+      api:
+        condition: service_healthy
     environment:
       - API_TARGET=http://api:8000
     ports:
       - "127.0.0.1:3000:80"
+    logging: *logging
+    deploy:
+      resources:
+        limits:
+          memory: 128m
 
 volumes:
   postgres_data:

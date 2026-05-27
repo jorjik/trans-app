@@ -67,7 +67,7 @@ class Quota(Base):
         BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     plan: Mapped[str] = mapped_column(String(20), default="free")
-    chars_limit: Mapped[int] = mapped_column(Integer, default=50_000)
+    chars_limit: Mapped[int] = mapped_column(Integer, default=25_000)
     chars_used: Mapped[int] = mapped_column(Integer, default=0)
     reset_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

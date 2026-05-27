@@ -62,7 +62,7 @@ def upgrade() -> None:
         sa.Column("id", sa.BigInteger(), autoincrement=True, nullable=False),
         sa.Column("user_id", sa.BigInteger(), nullable=False),
         sa.Column("plan", sa.String(length=20), nullable=False, server_default=sa.text("'free'")),
-        sa.Column("chars_limit", sa.Integer(), nullable=False, server_default=sa.text("50000")),
+        sa.Column("chars_limit", sa.Integer(), nullable=False, server_default=sa.text("25000")),
         sa.Column("chars_used", sa.Integer(), nullable=False, server_default=sa.text("0")),
         sa.Column("reset_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),

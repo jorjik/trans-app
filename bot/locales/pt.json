@@ -121,5 +121,9 @@
   "admin_payment_error": "❌ Falha ao atualizar as configurações de pagamento. Tente novamente.",
   "billing_method_monobank": "💳 Monobank",
   "billing_monobank_instructions": "💳 <b>Pagar com Monobank</b>\\n\\nPlano: <b>{plan}</b>\\nValor: <b>{amount} {currency}</b>\\n\\n1. Clique no botão abaixo\\n2. Você será redirecionado ao Monobank\\n3. Confirme o pagamento\\n4. Volte — o plano será ativado automaticamente",
-  "billing_monobank_open": "💳 Abrir Monobank"
+  "billing_monobank_open": "💳 Abrir Monobank",
+  "help_autotranslate_title": "Traduzir chats automaticamente:",
+  "help_autotranslate_text": "Configure chats para tradução automática no Mini App",
+  "help_group_title": "Grupos multilíngues:",
+  "help_group_text": "Admin ativa /group_translate para traduzir mensagens de membros"
 }

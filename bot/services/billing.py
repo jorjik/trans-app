@@ -37,7 +37,7 @@ BILLABLE_PLANS: dict[str, BillablePlan] = {
 
 # PLAN_LIMITS для обратной совместимости; storage.py теперь использует API
 PLAN_LIMITS = {p.id: p.chars_limit for p in BILLABLE_PLANS.values()}
-PLAN_LIMITS["free"] = 50_000
+PLAN_LIMITS["free"] = 25_000
 
 
 def build_payload(plan_id: str, telegram_id: int) -> str:
