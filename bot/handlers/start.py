@@ -203,6 +203,10 @@ async def cb_help(callback: CallbackQuery) -> None:
         f"<b>{t('help_settings_title', user.ui_language)}</b>\n"
         f"{t('help_settings_lang', user.ui_language)}\n"
         f"{t('help_settings_quota', user.ui_language)}\n\n"
+        f"<b>{t('help_autotranslate_title', user.ui_language)}</b>\n"
+        f"{t('help_autotranslate_text', user.ui_language)}\n\n"
+        f"<b>{t('help_group_title', user.ui_language)}</b>\n"
+        f"{t('help_group_text', user.ui_language)}\n\n"
         f"<b>{t('help_codes_title', user.ui_language)}</b>\n"
         f"{t('help_codes', user.ui_language)}"
     )

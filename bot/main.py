@@ -21,7 +21,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import TelegramObject, CallbackQuery
 
 from config import settings
-from handlers import start, translate, inline, errors, billing, admin
+from handlers import start, translate, inline, errors, billing, admin, group_translate
 from middlewares.throttle import ThrottleMiddleware
 from services.cache import close_redis
 from services.api_client import close_session
@@ -100,6 +100,7 @@ async def main() -> None:
     dp.include_router(translate.router)
     dp.include_router(inline.router)
     dp.include_router(admin.router)
+    dp.include_router(group_translate.router)
 
     # Команды в меню бота
     from aiogram.types import BotCommand
@@ -110,6 +111,7 @@ async def main() -> None:
         BotCommand(command="lang",   description="🔧 Изменить язык перевода"),
         BotCommand(command="quota",  description="📊 Баланс символов"),
         BotCommand(command="help",   description="❓ Помощь"),
+        BotCommand(command="group_translate", description="👥 Автоперевод в группе"),
         BotCommand(command="admin",  description="⚙️ Admin Panel"),
     ])
 

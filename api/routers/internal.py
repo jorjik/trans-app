@@ -8,9 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 from typing import Optional
 
+from sqlalchemy import select
+
 from core.config import settings
 from db.session import get_db
-from models import User
+from models import User, GroupChatConfig
 from services.quota import get_or_create_quota
 from core.security import hash_telegram_id
 
@@ -183,6 +185,85 @@ async def update_user_settings(
 
     await db.commit()
     return {"status": "ok"}
+
+
+# ── Internal: group chat translation config ────────────────────────────────────
+
+class GroupConfigRequest(BaseModel):
+    chat_id: int
+
+
+class GroupConfigUpsertRequest(BaseModel):
+    chat_id: int
+    chat_title: Optional[str] = None
+    target_lang: Optional[str] = None
+    is_active: Optional[bool] = None
+    translator_uid: Optional[int] = None
+
+
+@router.post(
+    "/group/config",
+    dependencies=[Depends(verify_bot_secret)],
+    response_model=dict,
+)
+async def get_group_config(
+    body: GroupConfigRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Возвращает настройки группового перевода для чата."""
+    result = await db.execute(
+        select(GroupChatConfig).where(GroupChatConfig.chat_id == body.chat_id)
+    )
+    config = result.scalar_one_or_none()
+    if not config:
+        return {"exists": False, "chat_id": body.chat_id}
+    return {
+        "exists": True,
+        "chat_id": config.chat_id,
+        "chat_title": config.chat_title,
+        "target_lang": config.target_lang,
+        "is_active": config.is_active,
+        "translator_uid": config.translator_uid,
+        "created_at": config.created_at.isoformat() if config.created_at else None,
+    }
+
+
+@router.post(
+    "/group/update-config",
+    dependencies=[Depends(verify_bot_secret)],
+    response_model=dict,
+)
+async def update_group_config(
+    body: GroupConfigUpsertRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Создаёт или обновляет настройки группового перевода."""
+    result = await db.execute(
+        select(GroupChatConfig).where(GroupChatConfig.chat_id == body.chat_id)
+    )
+    config = result.scalar_one_or_none()
+
+    if not config:
+        config = GroupChatConfig(
+            chat_id=body.chat_id,
+            chat_title=body.chat_title or "",
+            target_lang=body.target_lang or "en",
+            is_active=body.is_active if body.is_active is not None else True,
+            translator_uid=body.translator_uid,
+        )
+        db.add(config)
+    else:
+        if body.chat_title is not None:
+            config.chat_title = body.chat_title
+        if body.target_lang is not None:
+            config.target_lang = body.target_lang
+        if body.is_active is not None:
+            config.is_active = body.is_active
+        if body.translator_uid is not None:
+            config.translator_uid = body.translator_uid
+
+    await db.commit()
+    return {"status": "ok", "chat_id": body.chat_id, "is_active": config.is_active}
 
 
 # ── Internal: payment endpoints for bot (Ko-fi, PayPal) ───────────────────────

@@ -227,6 +227,64 @@ async def update_settings(
     return False
 
 
+async def _api_get_group_config(chat_id: int) -> dict | None:
+    """Получает настройки группового перевода из API."""
+    if not settings.api_url:
+        return None
+    try:
+        session = _ensure_session()
+        url = _api_url("/internal/group/config")
+        async with session.post(
+            url,
+            json={"chat_id": chat_id},
+            headers=_bot_secret_headers(),
+            timeout=10,
+        ) as resp:
+            if resp.status == 200:
+                return await resp.json()
+            log.warning("API get_group_config failed status=%s", resp.status)
+    except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+        log.warning("API get_group_config error: %s", e)
+    return None
+
+
+async def _api_update_group_config(
+    chat_id: int,
+    chat_title: str | None = None,
+    target_lang: str | None = None,
+    is_active: bool | None = None,
+    translator_uid: int | None = None,
+) -> bool:
+    """Создаёт/обновляет настройки группового перевода."""
+    if not settings.api_url:
+        return False
+    body: dict = {"chat_id": chat_id}
+    if chat_title is not None:
+        body["chat_title"] = chat_title
+    if target_lang is not None:
+        body["target_lang"] = target_lang
+    if is_active is not None:
+        body["is_active"] = is_active
+    if translator_uid is not None:
+        body["translator_uid"] = translator_uid
+
+    try:
+        session = _ensure_session()
+        url = _api_url("/internal/group/update-config")
+        async with session.post(
+            url,
+            json=body,
+            headers=_bot_secret_headers(),
+            timeout=10,
+        ) as resp:
+            if resp.status == 200:
+                return True
+            log.warning("API update_group_config failed status=%s", resp.status)
+    except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+        log.warning("API update_group_config error: %s", e)
+    return False
+
+
 async def upgrade_plan(telegram_id: int, plan: str) -> bool:
     """Апгрейд тарифа через API. Возвращает True при успехе."""
     if not settings.api_url:

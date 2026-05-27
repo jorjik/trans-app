@@ -51,13 +51,44 @@ for f in all_locales:
 # === 2. Upload bot Python files ===
 print()
 print('=== 2. Uploading bot Python files ===')
-for f in ['utils/languages.py', 'keyboards/inline_kb.py', 'handlers/start.py', 'handlers/admin.py', 'handlers/billing.py', 'services/billing.py', 'middlewares/throttle.py']:
+bot_files = [
+    'utils/languages.py',
+    'keyboards/inline_kb.py',
+    'handlers/start.py',
+    'handlers/admin.py',
+    'handlers/billing.py',
+    'handlers/group_translate.py',
+    'handlers/__init__.py',
+    'main.py',
+    'services/billing.py',
+    'services/api_client.py',
+    'services/storage.py',
+    'middlewares/throttle.py',
+]
+for f in bot_files:
     put_file('bot/' + f, 'bot/' + f)
 
 # === 3. Upload API Python files ===
 print()
 print('=== 3. Uploading API Python files ===')
-for f in ['routers/internal.py', 'routers/admin.py', 'routers/kofi.py', 'routers/webhook.py', 'routers/__init__.py', 'routers/billing.py', 'services/auth.py', 'services/user_service.py', 'services/kofi.py', 'services/paypal.py', 'services/monobank.py', 'models/__init__.py', 'core/config.py', 'requirements.txt']:
+api_files = [
+    'routers/internal.py',
+    'routers/admin.py',
+    'routers/kofi.py',
+    'routers/webhook.py',
+    'routers/__init__.py',
+    'routers/billing.py',
+    'schemas/__init__.py',
+    'services/auth.py',
+    'services/user_service.py',
+    'services/kofi.py',
+    'services/paypal.py',
+    'services/monobank.py',
+    'models/__init__.py',
+    'core/config.py',
+    'requirements.txt',
+]
+for f in api_files:
     put_file('api/' + f, 'api/' + f)
 
 # === 4. Upload API database migration files ===
@@ -77,54 +108,101 @@ for asset_path in assets:
     filename = os.path.basename(asset_path)
     put_file('miniapp/dist/assets/' + filename, 'miniapp/dist/assets/' + filename)
 
+# === 6. Upload miniapp source files ===
+print()
+print('=== 6. Uploading miniapp source files ===')
+miniapp_src_files = [
+    'src/api/client.ts',
+    'src/api/langs.ts',
+    'src/App.tsx',
+    'src/i18n.ts',
+    'src/main.tsx',
+    'src/styles.css',
+    'src/types.ts',
+    'src/store/useStore.ts',
+    'src/components/BottomNav.tsx',
+    'src/components/LangPicker.tsx',
+    'src/components/QuickTranslate.tsx',
+    'src/components/QuotaBar.tsx',
+    'src/components/StatsChart.tsx',
+    'src/pages/Billing.tsx',
+    'src/pages/Chats.tsx',
+    'src/pages/Dashboard.tsx',
+    'src/pages/Settings.tsx',
+    'index.html',
+    'package.json',
+    'vite.config.ts',
+    'nginx.conf',
+    'entrypoint.sh',
+    'Dockerfile',
+]
+for f in miniapp_src_files:
+    put_file('miniapp/' + f, 'miniapp/' + f)
+
 sftp.close()
 
-# === 6. Rebuild API (requirements.txt changed — ecdsa added) ===
+# === 7. Rebuild miniapp ===
 print()
-print('=== 6. Rebuilding API container ===')
+print('=== 7. Rebuilding miniapp container ===')
+out = run('cd /opt/trans-app && docker compose -f docker-compose.prod.yml build miniapp 2>&1')
+print(out[-1500:] if len(out) > 1500 else out)
+
+# === 8. Rebuild API ===
+print()
+print('=== 8. Rebuilding API container ===')
 out = run('cd /opt/trans-app && docker compose -f docker-compose.prod.yml build api 2>&1')
 print(out[-1500:] if len(out) > 1500 else out)
 
-# === 7. Rebuild bot ===
+# === 9. Rebuild bot ===
 print()
-print('=== 7. Rebuilding bot container ===')
+print('=== 9. Rebuilding bot container ===')
 out = run('cd /opt/trans-app && docker compose -f docker-compose.prod.yml build bot 2>&1')
 print(out[-1500:] if len(out) > 1500 else out)
 
-# === 8. Restart containers ===
+# === 10. Restart containers ===
 print()
-print('=== 8. Restarting API ===')
+print('=== 10. Restarting API ===')
 out = run('cd /opt/trans-app && docker compose -f docker-compose.prod.yml up -d --no-deps api 2>&1')
 print(out)
 
 print()
-print('=== 9. Restarting bot ===')
+print('=== 11. Restarting bot ===')
 out = run('cd /opt/trans-app && docker compose -f docker-compose.prod.yml up -d --no-deps bot 2>&1')
 print(out)
 
-# === 10. Wait and verify ===
+print()
+print('=== 12. Restarting miniapp ===')
+out = run('cd /opt/trans-app && docker compose -f docker-compose.prod.yml up -d --no-deps miniapp 2>&1')
+print(out)
+
+# === 13. Wait and verify ===
 print()
 print('Waiting 10 seconds...')
 time.sleep(10)
 
 print()
-print('=== 10. Container status ===')
+print('=== 13. Container status ===')
 out = run("docker ps --format '{{.Names}}\t{{.Status}}' | grep trans-app")
 print(out)
 
 print()
-print('=== 11. Bot logs (last 5) ===')
+print('=== 14. Bot logs (last 5) ===')
 out = run('docker logs trans-app-bot-1 2>&1 | tail -5')
 print(out)
 
 print()
-print('=== 12. API health ===')
+print('=== 15. API health ===')
 out = run('curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health 2>&1')
 print('  Health:', out)
 
 print()
-print('=== 13. API logs (last 3) ===')
+print('=== 16. API logs (last 3) ===')
 out = run('docker logs trans-app-api-1 2>&1 | tail -3')
+print(out)
+
+print()
+print('=== 17. Miniapp logs (last 3) ===')
+out = run('docker logs trans-app-miniapp-1 2>&1 | tail -3')
 print(out)
 
 ssh.close()

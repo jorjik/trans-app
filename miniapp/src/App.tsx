@@ -158,13 +158,27 @@ export default function App() {
     },
   });
 
+  const updateChatMutation = useMutation({
+    mutationFn: (payload: { id: number; source_lang: string; target_lang: string }) =>
+      updateChat(token as string, payload.id, {
+        source_lang: payload.source_lang,
+        target_lang: payload.target_lang,
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['chats', token] });
+    },
+    onError: (mutationError) => {
+      setError(mutationError instanceof Error ? mutationError.message : t('app.chat_update_error', uiLang));
+    },
+  });
+
   const deleteChatMutation = useMutation({
     mutationFn: (chatId: number) => deleteChat(token as string, chatId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['chats', token] });
     },
     onError: (mutationError) => {
-      setError(mutationError instanceof Error ? mutationError.message : t('app.chat_delete_error', uiLang));
+      setError(mutationError instanceof Error ? mutationError.message : t('app.chat_update_error', uiLang));
     },
   });
 
@@ -306,17 +320,26 @@ export default function App() {
           <Chats
             chats={chatsQuery.data?.items ?? []}
             limitReached={chatsQuery.data?.limit_reached ?? false}
+            maxChats={chatsQuery.data?.max_chats ?? 5}
             onCreate={async (payload) => {
               await createChatMutation.mutateAsync(payload);
             }}
             onToggle={async (chat) => {
               await toggleChatMutation.mutateAsync(chat);
             }}
+            onUpdate={async (chat, payload) => {
+              await updateChatMutation.mutateAsync({
+                id: chat.id,
+                source_lang: payload.source_lang,
+                target_lang: payload.target_lang,
+              });
+            }}
             onDelete={(chatId) => deleteChatMutation.mutateAsync(chatId)}
             isBusy={
               createChatMutation.isPending ||
               toggleChatMutation.isPending ||
-              deleteChatMutation.isPending
+              deleteChatMutation.isPending ||
+              updateChatMutation.isPending
             }
             uiLang={user.ui_language}
           />

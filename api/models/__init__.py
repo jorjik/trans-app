@@ -227,6 +227,27 @@ class PaymentIntent(Base):
     user: Mapped["User"] = relationship("User")
 
 
+# ── GroupChatConfig ────────────────────────────────────────────────────────────
+
+class GroupChatConfig(Base):
+    """Настройки автоперевода в групповых чатах."""
+    __tablename__ = "group_chat_configs"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    chat_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
+    chat_title: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    target_lang: Mapped[str] = mapped_column(String(10), default="en")
+    translator_uid: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True, comment="Telegram ID админа, включившего перевод")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow,
+        server_default=func.now(),
+    )
+
+
 # ── BotConfig ──────────────────────────────────────────────────────────────────
 
 class BotConfig(Base):

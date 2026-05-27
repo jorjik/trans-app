@@ -151,6 +151,24 @@ class CheckoutResponse(BaseModel):
     expires_at: datetime
 
 
+class GroupConfigUpdate(BaseModel):
+    chat_id: int
+    chat_title: Optional[str] = None
+    target_lang: Optional[str] = None
+    is_active: Optional[bool] = None
+    translator_uid: Optional[int] = None
+
+
+class GroupConfigResponse(BaseModel):
+    chat_id: int
+    chat_title: Optional[str]
+    target_lang: str
+    is_active: bool
+    translator_uid: Optional[int]
+    created_at: Optional[datetime]
+    model_config = {"from_attributes": True}
+
+
 class StarsInternalPayment(BaseModel):
     telegram_id: int
     plan_id: str
