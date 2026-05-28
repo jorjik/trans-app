@@ -9,10 +9,15 @@
 """
 import hashlib
 import hmac
+import io
 import json
 import os
+import sys
 import time
 from urllib.parse import urlencode
+
+# Windows compat: принудительно включаем UTF-8 для print()
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
 # Bot token — читаем из корневого .env
 def load_env(path: str) -> dict:
@@ -27,9 +32,9 @@ def load_env(path: str) -> dict:
     return env
 
 root_env = load_env(os.path.join(os.path.dirname(__file__), "..", ".env"))
-bot_token = root_env.get("BOT_TOKEN")
+bot_token = root_env.get("LOCAL_BOT_TOKEN") or root_env.get("BOT_TOKEN")
 if not bot_token:
-    print("❌ BOT_TOKEN not found in .env")
+    print("❌ BOT_TOKEN (or LOCAL_BOT_TOKEN) not found in .env")
     exit(1)
 
 # Simulated Telegram user

@@ -32,6 +32,7 @@ class Settings(BaseSettings):
 
     # Telegram
     bot_token: str = Field(..., alias="BOT_TOKEN")
+    local_bot_token: Optional[str] = Field(None, alias="LOCAL_BOT_TOKEN")
     bot_webhook_secret: Optional[str] = Field(None, alias="BOT_WEBHOOK_SECRET")
 
     # Database
@@ -81,6 +82,16 @@ class Settings(BaseSettings):
     monobank_currency: int = Field(980, alias="MONOBANK_CURRENCY")  # 980 = UAH
     monobank_amount_per_star: float = Field(0.02, alias="MONOBANK_AMOUNT_PER_STAR")
     monobank_webhook_url: Optional[str] = Field(None, alias="MONOBANK_WEBHOOK_URL")
+
+    @model_validator(mode="after")
+    def _override_for_dev(self) -> "Settings":
+        if self.env == "production":
+            return self
+        if self.local_bot_token:
+            self.bot_token = self.local_bot_token
+        # В dev-режиме разрешаем CORS для локальной разработки
+        self.cors_origins = ["*"]
+        return self
 
     @model_validator(mode="after")
     def _validate_production_secrets(self) -> "Settings":

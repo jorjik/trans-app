@@ -208,6 +208,7 @@ async def update_settings(
     if favorite_langs is not None:
         body["favorite_langs"] = favorite_langs
 
+    success = False
     try:
         session = _ensure_session()
         url = _api_url("/internal/user/update-settings")
@@ -219,12 +220,26 @@ async def update_settings(
         ) as resp:
             if resp.status == 200:
                 _cache_invalidate(telegram_id)
-                return True
-            log.warning("API update_settings failed status=%s", resp.status)
+                success = True
+            else:
+                log.warning("API update_settings failed status=%s", resp.status)
     except (aiohttp.ClientError, asyncio.TimeoutError) as e:
         log.warning("API update_settings error: %s", e)
 
-    return False
+    # Local fallback: если API недоступен, но передан ui_language,
+    # обновляем in-memory кэш, чтобы не потерять выбор языка интерфейса.
+    if not success and ui_language is not None:
+        cached = _cache_get(telegram_id)
+        if cached:
+            log.info(
+                "update_settings: local fallback ui_language=%s for tg_id=%s",
+                ui_language, telegram_id,
+            )
+            cached.ui_language = ui_language
+            _cache_set(telegram_id, cached)
+            success = True
+
+    return success
 
 
 async def _api_get_group_config(chat_id: int) -> dict | None:

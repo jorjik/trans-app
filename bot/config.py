@@ -18,6 +18,7 @@ class Settings(BaseSettings):
 
     # Telegram
     bot_token: str = Field(..., alias="BOT_TOKEN")
+    local_bot_token: Optional[str] = Field(None, alias="LOCAL_BOT_TOKEN")
     mini_app_url: str = Field("https://example.com/miniapp", alias="MINI_APP_URL")
     bot_webhook_secret: Optional[str] = Field(None, alias="BOT_WEBHOOK_SECRET")
 
@@ -57,6 +58,12 @@ class Settings(BaseSettings):
     # Rate limiting
     max_requests_per_minute: int = Field(30, alias="MAX_REQUESTS_PER_MINUTE")
     max_translate_per_minute: int = Field(15, alias="MAX_TRANSLATE_PER_MINUTE")
+
+    @model_validator(mode="after")
+    def _override_bot_token_for_dev(self) -> "Settings":
+        if self.env != "production" and self.local_bot_token:
+            self.bot_token = self.local_bot_token
+        return self
 
     @model_validator(mode="after")
     def _validate_production_secrets(self) -> "Settings":

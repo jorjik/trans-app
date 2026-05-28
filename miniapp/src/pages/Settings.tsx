@@ -29,6 +29,12 @@ export function Settings({ user, onSave, isSaving }: SettingsProps) {
     setUiLang(user.ui_language ?? 'en');
   }, [user.target_language, user.favorite_langs, user.preferred_engine, user.ui_language, user.id]);
 
+  useEffect(() => {
+    if (uiLang && uiLang !== 'auto') {
+      setTargetLanguage(uiLang);
+    }
+  }, [uiLang]);
+
   return (
     <Stack gap="md">
       <div>
@@ -78,6 +84,7 @@ export function Settings({ user, onSave, isSaving }: SettingsProps) {
             ]}
             value={uiLang}
             onChange={(value) => value && setUiLang(value)}
+            withCheckIcon={false}
           />
           <Group justify="flex-end">
             <Button

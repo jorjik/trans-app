@@ -235,6 +235,7 @@ export default function App() {
     try {
       const updated = await updateMe(token, { ui_language: pickerLang });
       setUser(updated);
+      void queryClient.invalidateQueries({ queryKey: ['me', token] });
     } catch {
       // fallback: keep the default user, they can change in Settings
     }
@@ -271,10 +272,10 @@ export default function App() {
                   }}
                   onClick={() => setPickerLang(value)}
                 >
-                  <Group gap="sm">
-                    <Text fz={24}>{flag}</Text>
-                    <Text fw={pickerLang === value ? 600 : 400}>{label}</Text>
-                  </Group>
+<Group gap="sm">
+                     <Text fz={24}>{flag}</Text>
+                     <Text fw={pickerLang === value ? 600 : 400}>{label}</Text>
+                   </Group>
                 </Card>
               ))}
             </Stack>

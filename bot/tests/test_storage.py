@@ -24,9 +24,9 @@ class TestUserDataModel:
         assert user.ui_language == ""
         assert user.favorite_langs == ["en", "de", "fr"]
         assert user.plan == "free"
-        assert user.chars_limit == 50_000
+        assert user.chars_limit == 25_000
         assert user.chars_used == 0
-        assert user.chars_remaining == 50_000
+        assert user.chars_remaining == 25_000
 
     def test_is_quota_exceeded_false(self):
         user = UserData(telegram_id=123, chars_used=100, chars_limit=50000)
