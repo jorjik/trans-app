@@ -1,0 +1,152 @@
+# TransApp — Coolify Docker Compose stack
+#
+# Build pack: Docker Compose
+#   Base Directory:           /
+#   Docker Compose Location:  docker-compose.coolify.yml
+#
+# Domains are set in the Coolify UI per service (NOT via ports:):
+#   miniapp -> https://transapp777.xyz   :80     (Telegram Mini App + SPA)
+#   api     -> https://api.transapp.dev  :8000   (payment webhooks: /webhook/*)
+#   db, redis, bot -> internal only, no domain
+#
+# Coolify creates an isolated network for the stack; services reach each other
+# by service name (db:5432, redis:6379, api:8000). Do NOT add custom networks.
+#
+# Every ${VAR} becomes an editable Environment Variable in the Coolify UI.
+# ${VAR:?} marks it required - deploy is blocked until you fill it in.
+
+x-logging: &logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+# Env shared by api + bot (translation providers, quotas, admin).
+x-app-env: &app-env
+  ENV: ${ENV:-production}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  BOT_TOKEN: ${BOT_TOKEN:?}
+  BOT_INTERNAL_SECRET: ${BOT_INTERNAL_SECRET:?}
+  DEEPL_API_KEY: ${DEEPL_API_KEY:-}
+  GOOGLE_TRANSLATE_API_KEY: ${GOOGLE_TRANSLATE_API_KEY:-}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  DEFAULT_TRANSLATION_ENGINE: ${DEFAULT_TRANSLATION_ENGINE:-google_free}
+  FREE_PLAN_CHARS: ${FREE_PLAN_CHARS:-25000}
+  REFERRAL_BONUS_CHARS: ${REFERRAL_BONUS_CHARS:-10000}
+  ADMIN_TG_IDS: "${ADMIN_TG_IDS:-[]}"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: transapp
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d transapp"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    logging: *logging
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru --appendonly yes --save 900 1
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    logging: *logging
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?}@db:5432/transapp
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY:?}
+      TELEGRAM_ID_ENCRYPTION_KEY: ${TELEGRAM_ID_ENCRYPTION_KEY:-}
+      DEBUG: ${DEBUG:-False}
+      # Must include the miniapp domain (production: https://transapp777.xyz)
+      CORS_ORIGINS: "${CORS_ORIGINS:-[\"https://transapp777.xyz\"]}"
+      BOT_WEBHOOK_SECRET: ${BOT_WEBHOOK_SECRET:-}
+      MONOBANK_TOKEN: ${MONOBANK_TOKEN:-}
+      MONOBANK_CURRENCY: ${MONOBANK_CURRENCY:-980}
+      MONOBANK_AMOUNT_PER_STAR: ${MONOBANK_AMOUNT_PER_STAR:-0.02}
+      MONOBANK_WEBHOOK_URL: ${MONOBANK_WEBHOOK_URL:-}
+      KOFI_VERIFICATION_TOKEN: ${KOFI_VERIFICATION_TOKEN:-}
+      KOFI_PAGE_URL: ${KOFI_PAGE_URL:-}
+      KOFI_CURRENCY: ${KOFI_CURRENCY:-USD}
+      KOFI_AMOUNT_PER_STAR: ${KOFI_AMOUNT_PER_STAR:-0.02}
+      PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID:-}
+      PAYPAL_CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET:-}
+      PAYPAL_MODE: ${PAYPAL_MODE:-sandbox}
+      PAYPAL_CURRENCY: ${PAYPAL_CURRENCY:-USD}
+      PAYPAL_AMOUNT_PER_STAR: ${PAYPAL_AMOUNT_PER_STAR:-0.02}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    logging: *logging
+
+  bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    # Polling bot with no HTTP server -> excluded from stack health checks.
+    exclude_from_hc: true
+    environment:
+      <<: *app-env
+      REDIS_URL: redis://redis:6379/0
+      USE_REDIS: ${USE_REDIS:-True}
+      BACKEND_API_URL: http://api:8000
+      MINI_APP_URL: ${MINI_APP_URL:-https://transapp777.xyz/miniapp}
+    depends_on:
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    logging: *logging
+
+  miniapp:
+    build:
+      context: ./miniapp
+      dockerfile: Dockerfile
+      args:
+        # Absolute API base baked into the SPA at build time. Must match the
+        # api service domain, and that domain must be listed in CORS_ORIGINS.
+        VITE_API_URL: ${VITE_API_URL:-https://api.transapp.dev}
+    restart: unless-stopped
+    environment:
+      API_TARGET: http://api:8000
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      api:
+        condition: service_healthy
+    logging: *logging
+
+volumes:
+  db_data:
+  redis_data:

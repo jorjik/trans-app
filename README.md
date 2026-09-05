@@ -15,10 +15,18 @@ trans-app/
 ├── bot/                    ← Telegram Bot (Python / Node.js)
 ├── api/                    ← Backend API (FastAPI / Express)
 ├── miniapp/                ← Telegram Mini App (React/Vite)
-├── infra/                  ← Docker, docker-compose, nginx конфиги
+├── infra/                  ← dev docker-compose
+├── docker-compose.coolify.yml  ← прод-стек для Coolify
 └── .env.example
 ```
 
 ## Быстрый старт
 
 Документацию смотри в папке `docs/` — начни с `PRD.md`.
+
+## Деплой (Coolify)
+
+Прод разворачивается одним Docker Compose стеком на Coolify:
+`docker-compose.coolify.yml`. Полная инструкция — `docs/DEPLOY-COOLIFY.md`.
+
+Локальная разработка — `infra/docker-compose.yml`.

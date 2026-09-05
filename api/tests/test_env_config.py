@@ -135,7 +135,7 @@ class TestDotenvFile:
     def test_dotenv_exists(self):
         assert DOTENV_PATH.exists(), (
             f".env not found at {DOTENV_PATH}\n"
-            "  Create it from .env.example or copy from server: scripts/deploy_all.py copies it"
+            "  Create it from .env.example (see docs/DEPLOY-COOLIFY.md for production)"
         )
 
     def test_dotenv_not_empty(self, dotenv_vars):
