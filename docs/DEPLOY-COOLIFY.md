@@ -148,3 +148,34 @@ Coolify → проект → `db` → **Backups**: включи Scheduled S3/dis
 - `Dockerfile.bak` — мусор.
 
 Локальная разработка не меняется: `infra/docker-compose.yml` как был для dev, так и остался.
+## Управление через API (без UI)
+
+Доступ хранится в переменных окружения пользователя (не в репозитории):
+
+| Переменная | Значение |
+|------------|----------|
+| `COOLIFY_URL` | `https://jenya.website` |
+| `COOLIFY_API_TOKEN` | токен из Coolify → Settings → API |
+| `COOLIFY_APP_UUID` | `tpnridaztlzcfcyfmcipqdlq` (дефолт в скрипте) |
+
+Хелпер `scripts/coolify.py` покрывает частые операции:
+
+```bash
+python scripts/coolify.py status                    # build pack, домены, статус
+python scripts/coolify.py envs                      # список переменных
+python scripts/coolify.py set KEY=value KEY2=value2 # задать переменные
+python scripts/coolify.py domain miniapp https://transapp777.xyz
+python scripts/coolify.py deploy                    # запустить редеплой
+python scripts/coolify.py logs                      # логи последнего деплоя
+python scripts/coolify.py dedupe                    # убрать дубли env
+```
+
+Особенности API, найденные на практике:
+- переменные задаются только через `PATCH /applications/{uuid}/envs/bulk`
+  (в `PATCH /applications/{uuid}` поле `environment_variables` запрещено);
+- домены — `docker_compose_domains` массивом: `[{"name": "miniapp", "domain": "https://..."}]`;
+- при каждом парсинге compose Coolify добавляет новые строки env → появляются дубли
+  с пустыми значениями, их убирает `dedupe`.
+
+Также подключён MCP-сервер Coolify (`~/.config/opencode/opencode.json`, секция `mcp.coolify`)
+для чтения состояния: серверы, проекты, приложения, базы, сервисы.
