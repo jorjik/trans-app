@@ -146,6 +146,23 @@ services:
       api:
         condition: service_healthy
     logging: *logging
+    # Explicit Traefik routing. Coolify only injects proxy labels when they are
+    # absent, and it never sets traefik.docker.network — which is required here
+    # because the container sits on both the stack network and `coolify`.
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=coolify
+      - traefik.http.services.transapp-miniapp.loadbalancer.server.port=80
+      - traefik.http.middlewares.transapp-https.redirectscheme.scheme=https
+      - traefik.http.routers.transapp-http.entryPoints=http
+      - 'traefik.http.routers.transapp-http.rule=Host(`transapp777.xyz`)'
+      - traefik.http.routers.transapp-http.middlewares=transapp-https
+      - traefik.http.routers.transapp-http.service=transapp-miniapp
+      - traefik.http.routers.transapp-https.entryPoints=https
+      - 'traefik.http.routers.transapp-https.rule=Host(`transapp777.xyz`)'
+      - traefik.http.routers.transapp-https.service=transapp-miniapp
+      - traefik.http.routers.transapp-https.tls=true
+      - traefik.http.routers.transapp-https.tls.certresolver=letsencrypt
 
 volumes:
   db_data:
