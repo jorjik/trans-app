@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { ReactNode } from 'react';
 
 import App from '../App';
+import type { User } from '../types';
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -165,7 +166,7 @@ describe('Language Picker — handleLangConfirm', () => {
   it('sets user immediately after confirm and invalidates query', async () => {
     const { updateMe, getMe } = await import('../api/client');
 
-    const updatedUser = {
+    const updatedUser: User = {
       id: 123,
       ui_language: 'ru',
       target_language: 'en',
