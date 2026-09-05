@@ -138,10 +138,14 @@ services:
     environment:
       API_TARGET: http://api:8000
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80/"]
-      interval: 30s
+      # 127.0.0.1, not localhost: the coolify network has IPv6, localhost
+      # resolves to ::1 first and nginx only listens on IPv4 (`listen 80`).
+      # An unhealthy container makes Traefik drop its router entirely.
+      test: ["CMD-SHELL", "wget -qO /dev/null http://127.0.0.1:80/ || exit 1"]
+      interval: 15s
       timeout: 5s
-      retries: 3
+      start_period: 15s
+      retries: 5
     depends_on:
       api:
         condition: service_healthy
