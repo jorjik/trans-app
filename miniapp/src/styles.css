@@ -37,3 +37,16 @@ body {
 [data-mantine-color-scheme="dark"] .chat-row:hover {
   background-color: var(--mantine-color-dark-6);
 }
+
+/* Touch targets for chat card/table action icons */
+.chat-card .mantine-ActionIcon-root,
+.chat-row .mantine-ActionIcon-root {
+  min-width: 32px;
+  min-height: 32px;
+}
+
+/* iOS home bar spacing for the fixed bottom nav */
+.mantine-AppShell-footer {
+  padding-bottom: env(safe-area-inset-bottom);
+  box-sizing: content-box;
+}

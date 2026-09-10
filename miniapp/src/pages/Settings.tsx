@@ -35,6 +35,12 @@ export function Settings({ user, onSave, isSaving }: SettingsProps) {
     }
   }, [uiLang]);
 
+  const isDirty =
+    targetLanguage !== user.target_language ||
+    [...favoriteLangs].sort().join(',') !== [...user.favorite_langs].sort().join(',') ||
+    engine !== user.preferred_engine ||
+    uiLang !== (user.ui_language ?? 'en');
+
   return (
     <Stack gap="md">
       <div>
@@ -89,6 +95,7 @@ export function Settings({ user, onSave, isSaving }: SettingsProps) {
           <Group justify="flex-end">
             <Button
               loading={isSaving}
+              disabled={!isDirty}
               onClick={() =>
                 onSave({
                   target_language: targetLanguage,

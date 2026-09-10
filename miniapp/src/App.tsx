@@ -32,6 +32,7 @@ import {
   updateMe,
 } from './api/client';
 import { BottomNav } from './components/BottomNav';
+import { hapticImpact, hapticNotification } from './haptics';
 import { t } from './i18n';
 import { Billing } from './pages/Billing';
 import { Chats } from './pages/Chats';
@@ -43,6 +44,8 @@ import type { ChatConfig } from './types';
 export default function App() {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [payingPlanId, setPayingPlanId] = useState<string | null>(null);
   const token = useStore((state) => state.token);
   const user = useStore((state) => state.user);
   const isReady = useStore((state) => state.isReady);
@@ -128,6 +131,8 @@ export default function App() {
     onSuccess: (nextUser) => {
       setUser(nextUser);
       void queryClient.invalidateQueries({ queryKey: ['me', token] });
+      setNotice(t('settings.saved', nextUser.ui_language));
+      hapticNotification('success');
     },
     onError: (mutationError) => {
       setError(mutationError instanceof Error ? mutationError.message : t('app.save_error', uiLang));
@@ -146,10 +151,12 @@ export default function App() {
   });
 
   const toggleChatMutation = useMutation({
-    mutationFn: (chat: ChatConfig) =>
-      updateChat(token as string, chat.id, {
+    mutationFn: async (chat: ChatConfig) => {
+      hapticImpact(chat.is_active ? 'light' : 'medium');
+      await updateChat(token as string, chat.id, {
         is_active: !chat.is_active,
-      }),
+      });
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['chats', token] });
     },
@@ -178,7 +185,7 @@ export default function App() {
       void queryClient.invalidateQueries({ queryKey: ['chats', token] });
     },
     onError: (mutationError) => {
-      setError(mutationError instanceof Error ? mutationError.message : t('app.chat_update_error', uiLang));
+      setError(mutationError instanceof Error ? mutationError.message : t('app.chat_delete_error', uiLang));
     },
   });
 
@@ -193,13 +200,18 @@ export default function App() {
         void queryClient.invalidateQueries({ queryKey: ['me', token] });
       };
 
+      setPayingPlanId(null);
+
       if (tg?.openInvoice) {
         tg.openInvoice(url, (status) => {
           if (status === 'paid') {
             refreshBilling();
             setError(null);
+            setNotice(t('billing.payment_done', uiLang));
+            hapticNotification('success');
           } else if (status === 'failed') {
             setError(t('app.payment_failed', uiLang));
+            hapticNotification('error');
           }
         });
         return;
@@ -212,7 +224,9 @@ export default function App() {
       }
     },
     onError: (mutationError) => {
+      setPayingPlanId(null);
       setError(mutationError instanceof Error ? mutationError.message : t('app.checkout_error', uiLang));
+      hapticNotification('error');
     },
   });
 
@@ -265,17 +279,27 @@ export default function App() {
                   withBorder
                   radius="md"
                   p="sm"
+                  role="radio"
+                  aria-checked={pickerLang === value}
+                  tabIndex={0}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      setPickerLang(value);
+                    }
+                  }}
                   style={{
                     cursor: 'pointer',
+                    outline: 'none',
                     borderColor: pickerLang === value ? 'var(--mantine-color-blue-6)' : undefined,
                     backgroundColor: pickerLang === value ? 'var(--mantine-color-blue-0)' : undefined,
                   }}
                   onClick={() => setPickerLang(value)}
                 >
-<Group gap="sm">
-                     <Text fz={24}>{flag}</Text>
-                     <Text fw={pickerLang === value ? 600 : 400}>{label}</Text>
-                   </Group>
+                  <Group gap="sm">
+                    <Text fz={24}>{flag}</Text>
+                    <Text fw={pickerLang === value ? 600 : 400}>{label}</Text>
+                  </Group>
                 </Card>
               ))}
             </Stack>
@@ -322,6 +346,7 @@ export default function App() {
             chats={chatsQuery.data?.items ?? []}
             limitReached={chatsQuery.data?.limit_reached ?? false}
             maxChats={chatsQuery.data?.max_chats ?? 5}
+            isLoading={chatsQuery.isLoading}
             onCreate={async (payload) => {
               await createChatMutation.mutateAsync(payload);
             }}
@@ -350,7 +375,11 @@ export default function App() {
           <Billing
             plans={plansQuery.data?.plans ?? []}
             currentPlan={user.plan}
+            payingPlanId={payingPlanId}
+            charsLimit={user.chars_limit}
             onCheckout={async (planId) => {
+              setPayingPlanId(planId);
+              hapticImpact('light');
               await checkoutMutation.mutateAsync(planId);
             }}
             isLoading={checkoutMutation.isPending}
@@ -369,7 +398,7 @@ export default function App() {
         );
       case 'dashboard':
       default:
-        return <Dashboard user={user} stats={statsQuery.data} />;
+        return <Dashboard user={user} stats={statsQuery.data} isLoadingStats={statsQuery.isLoading} />;
     }
   })();
 
@@ -395,6 +424,11 @@ export default function App() {
           {error ? (
             <Notification color="red" onClose={() => setError(null)}>
               {error}
+            </Notification>
+          ) : null}
+          {notice ? (
+            <Notification color="teal" onClose={() => setNotice(null)}>
+              {notice}
             </Notification>
           ) : null}
           {content}

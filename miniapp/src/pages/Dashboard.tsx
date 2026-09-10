@@ -1,4 +1,4 @@
-import { Card, Grid, Stack, Text, Title } from '@mantine/core';
+import { Card, Grid, Skeleton, Stack, Text, Title } from '@mantine/core';
 
 import { getLangLabel } from '../api/langs';
 import { QuotaBar } from '../components/QuotaBar';
@@ -10,9 +10,10 @@ import type { StatsResponse, User } from '../types';
 interface DashboardProps {
   user: User;
   stats?: StatsResponse;
+  isLoadingStats?: boolean;
 }
 
-export function Dashboard({ user, stats }: DashboardProps) {
+export function Dashboard({ user, stats, isLoadingStats }: DashboardProps) {
   const lang = user.ui_language ?? 'en';
 
   return (
@@ -30,7 +31,23 @@ export function Dashboard({ user, stats }: DashboardProps) {
 
       <QuickTranslate />
 
-      {stats ? (
+      {isLoadingStats ? (
+        <Grid>
+          <Grid.Col span={{ base: 12, md: 4 }}>
+            <Card withBorder radius="md" p="md">
+              <Skeleton height={12} radius="xl" width="55%" />
+              <Skeleton height={24} radius="sm" width="40%" my={10} />
+              <Skeleton height={12} radius="xl" width="35%" />
+              <Skeleton height={12} radius="xl" width="70%" mt={12} />
+            </Card>
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, md: 8 }}>
+            <Card withBorder radius="md" p="md">
+              <Skeleton height={160} radius="md" />
+            </Card>
+          </Grid.Col>
+        </Grid>
+      ) : stats ? (
         <Grid>
           <Grid.Col span={{ base: 12, md: 4 }}>
             <Card withBorder radius="md" p="md">

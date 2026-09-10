@@ -1,6 +1,8 @@
 import { Text, UnstyledButton } from '@mantine/core';
 import type { TablerIcon } from '@tabler/icons-react';
 
+import { hapticSelection } from '../haptics';
+
 type NavItemKey = 'dashboard' | 'chats' | 'billing' | 'settings';
 
 interface NavItem {
@@ -29,7 +31,10 @@ export function BottomNav({ items, active, onTabClick }: BottomNavProps) {
         return (
           <UnstyledButton
             key={item.key}
-            onClick={() => onTabClick(item.key)}
+            onClick={() => {
+              if (!isActive) hapticSelection();
+              onTabClick(item.key);
+            }}
             style={{
               flex: 1,
               display: 'flex',

@@ -96,6 +96,8 @@ interface TelegramWebApp {
   expand(): void;
   close(): void;
   sendData(data: string): void;
+  onEvent?(event: string, eventHandler: () => void): void;
+  offEvent?(event: string, eventHandler: () => void): void;
   openLink(url: string, options?: { try_instant_view?: boolean }): void;
   openTelegramLink(url: string): void;
   openInvoice(

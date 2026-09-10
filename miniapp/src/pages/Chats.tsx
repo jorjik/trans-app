@@ -12,6 +12,7 @@ import {
   Table,
   Text,
   TextInput,
+  Skeleton,
   Title,
   Tooltip,
 } from '@mantine/core';
@@ -26,6 +27,7 @@ import {
 import { useMemo, useState } from 'react';
 
 import { LANG_FLAGS, LANGUAGE_OPTIONS, getLangLabel } from '../api/langs';
+import { hapticNotification } from '../haptics';
 import { t } from '../i18n';
 import type { ChatConfig } from '../types';
 
@@ -33,6 +35,7 @@ interface ChatsProps {
   chats: ChatConfig[];
   limitReached: boolean;
   maxChats: number;
+  isLoading?: boolean;
   onCreate: (payload: { chat_username: string; source_lang: string; target_lang: string }) => Promise<void>;
   onToggle: (chat: ChatConfig) => Promise<void>;
   onUpdate: (chat: ChatConfig, payload: { source_lang: string; target_lang: string }) => Promise<void>;
@@ -41,7 +44,7 @@ interface ChatsProps {
   uiLang?: string;
 }
 
-export function Chats({ chats, limitReached, maxChats, onCreate, onToggle, onUpdate, onDelete, isBusy, uiLang = 'en' }: ChatsProps) {
+export function Chats({ chats, limitReached, maxChats, onCreate, onToggle, onUpdate, onDelete, isBusy, isLoading, uiLang = 'en' }: ChatsProps) {
   const [chatUsername, setChatUsername] = useState('');
   const [sourceLang, setSourceLang] = useState('auto');
   const [targetLang, setTargetLang] = useState('en');
@@ -50,6 +53,10 @@ export function Chats({ chats, limitReached, maxChats, onCreate, onToggle, onUpd
   // Edit modal state
   const [editOpened, { open: openEdit, close: closeEdit }] = useDisclosure(false);
   const [editingChat, setEditingChat] = useState<ChatConfig | null>(null);
+
+  // Delete confirm modal state
+  const [deleteOpened, { open: openDelete, close: closeDelete }] = useDisclosure(false);
+  const [deletingChat, setDeletingChat] = useState<ChatConfig | null>(null);
   const [editSource, setEditSource] = useState('auto');
   const [editTarget, setEditTarget] = useState('en');
 
@@ -85,6 +92,23 @@ export function Chats({ chats, limitReached, maxChats, onCreate, onToggle, onUpd
     await onUpdate(editingChat, { source_lang: editSource, target_lang: editTarget });
     closeEdit();
     setEditingChat(null);
+  };
+
+  // Delete confirmation
+  const handleOpenDelete = (chat: ChatConfig) => {
+    setDeletingChat(chat);
+    openDelete();
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingChat) return;
+    try {
+      await onDelete(deletingChat.id);
+      hapticNotification('success');
+    } finally {
+      closeDelete();
+      setDeletingChat(null);
+    }
   };
 
   return (
@@ -199,7 +223,12 @@ export function Chats({ chats, limitReached, maxChats, onCreate, onToggle, onUpd
       )}
 
       {/* Chat list */}
-      {filteredChats.length === 0 ? (
+      {isLoading && chats.length === 0 ? (
+        <Stack gap="sm">
+          <Skeleton height={96} radius="md" />
+          <Skeleton height={96} radius="md" />
+        </Stack>
+      ) : filteredChats.length === 0 ? (
         <Card withBorder radius="md" p="xl">
           <Stack align="center" gap="sm" py="lg">
             <Text fz={48} style={{ opacity: 0.3 }}>
@@ -215,7 +244,9 @@ export function Chats({ chats, limitReached, maxChats, onCreate, onToggle, onUpd
               <Button
                 variant="light"
                 size="xs"
-                onClick={toggleForm}
+                onClick={() => {
+                  if (!formOpened) toggleForm();
+                }}
                 leftSection={<IconMessagePlus size={14} />}
               >
                 {t('chats.add_first', uiLang)}
@@ -255,7 +286,7 @@ export function Chats({ chats, limitReached, maxChats, onCreate, onToggle, onUpd
                   <ActionIcon variant="subtle" color="blue" size="sm" onClick={() => handleOpenEdit(chat)}>
                     <IconEdit size={14} />
                   </ActionIcon>
-                  <ActionIcon variant="subtle" color="red" size="sm" onClick={() => onDelete(chat.id)}>
+                  <ActionIcon variant="subtle" color="red" size="sm" onClick={() => handleOpenDelete(chat)}>
                     <IconTrash size={14} />
                   </ActionIcon>
                 </Group>
@@ -358,7 +389,7 @@ export function Chats({ chats, limitReached, maxChats, onCreate, onToggle, onUpd
                               </ActionIcon>
                             </Tooltip>
                             <Tooltip label={t('chats.delete_tooltip', uiLang)}>
-                              <ActionIcon variant="subtle" color="red" size="sm" onClick={() => onDelete(chat.id)}>
+                              <ActionIcon variant="subtle" color="red" size="sm" onClick={() => handleOpenDelete(chat)}>
                                 <IconTrash size={15} />
                               </ActionIcon>
                             </Tooltip>
@@ -414,6 +445,31 @@ export function Chats({ chats, limitReached, maxChats, onCreate, onToggle, onUpd
             </Group>
           </Stack>
         )}
+      </Modal>
+
+      {/* Delete confirmation Modal */}
+      <Modal
+        opened={deleteOpened}
+        onClose={closeDelete}
+        title={t('chats.delete_confirm_title', uiLang)}
+        size="sm"
+        centered
+      >
+        <Stack gap="md">
+          <Text size="sm">
+            {t('chats.delete_confirm_desc', uiLang, {
+              chat: deletingChat?.chat_title ?? `@${deletingChat?.chat_username ?? ''}`,
+            })}
+          </Text>
+          <Group justify="flex-end">
+            <Button variant="default" onClick={closeDelete}>
+              {t('chats.edit_cancel', uiLang)}
+            </Button>
+            <Button color="red" loading={isBusy} onClick={handleConfirmDelete}>
+              {t('chats.delete_confirm_btn', uiLang)}
+            </Button>
+          </Group>
+        </Stack>
       </Modal>
     </Stack>
   );
